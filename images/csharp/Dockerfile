@@ -7,6 +7,8 @@ USER root
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         wget \
+        ca-certificates \
+        apt-transport-https \
         && \
     wget -O packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb && \
     dpkg -i packages-microsoft-prod.deb && \
