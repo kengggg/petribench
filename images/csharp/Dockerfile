@@ -3,19 +3,25 @@ FROM ghcr.io/kengggg/petribench-base:latest
 # Switch to root to install packages
 USER root
 
-# Install .NET 8 runtime from Microsoft repository
+# Install .NET 8 runtime
+# Using direct download method instead of package manager for better compatibility
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         wget \
         ca-certificates \
+        libicu-dev \
+        libssl-dev \
         && \
-    wget -O packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    rm packages-microsoft-prod.deb && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        aspnetcore-runtime-8.0 \
-        && \
+    case $(dpkg --print-architecture) in \
+        amd64) ARCH=x64 ;; \
+        arm64) ARCH=arm64 ;; \
+        *) echo "Unsupported architecture" && exit 1 ;; \
+    esac && \
+    wget -O dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Runtime/8.0.10/dotnet-runtime-8.0.10-linux-$ARCH.tar.gz && \
+    mkdir -p /usr/share/dotnet && \
+    tar -zxf dotnet.tar.gz -C /usr/share/dotnet && \
+    rm dotnet.tar.gz && \
+    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
