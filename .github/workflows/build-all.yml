@@ -23,72 +23,102 @@ jobs:
     uses: ./.github/workflows/build-base.yml
     secrets: inherit
 
-  # Build all language images in parallel (depends on base)
-  build-python:
+  # Build all language images in parallel using matrix (depends on base)
+  build-languages:
     needs: build-base
-    uses: ./.github/workflows/build-python.yml
-    secrets: inherit
-
-  build-go:
-    needs: build-base
-    uses: ./.github/workflows/build-go.yml
-    secrets: inherit
-
-  build-node:
-    needs: build-base
-    uses: ./.github/workflows/build-node.yml
-    secrets: inherit
-
-  build-c:
-    needs: build-base
-    uses: ./.github/workflows/build-c.yml
-    secrets: inherit
-
-  build-cpp:
-    needs: build-base
-    uses: ./.github/workflows/build-cpp.yml
-    secrets: inherit
-
-  build-java-jdk:
-    needs: build-base
-    uses: ./.github/workflows/build-java-jdk.yml
-    secrets: inherit
-
-  build-java-jre:
-    needs: build-base
-    uses: ./.github/workflows/build-java-jre.yml
-    secrets: inherit
-
-  build-rust:
-    needs: build-base
-    uses: ./.github/workflows/build-rust.yml
-    secrets: inherit
-
-  build-dotnet-sdk:
-    needs: build-base
-    uses: ./.github/workflows/build-dotnet-sdk.yml
-    secrets: inherit
-
-  build-dotnet-runtime:
-    needs: build-base
-    uses: ./.github/workflows/build-dotnet-runtime.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, go, node, c, cpp, java-jdk, java-jre, rust, dotnet-sdk, dotnet-runtime]
+        include:
+          - language: python
+            dockerfile: Dockerfile.python
+            size_target: '<100MB'
+            test_command: 'python3 test.py'
+            test_content: 'print("Test successful")'
+            test_extension: 'py'
+          - language: go
+            dockerfile: Dockerfile.go
+            size_target: '<60MB'
+            test_command: 'go run test.go'
+            test_content: 'package main; import "fmt"; func main() { fmt.Println("Test successful") }'
+            test_extension: 'go'
+          - language: node
+            dockerfile: Dockerfile.node
+            size_target: '<100MB'
+            test_command: 'node test.js'
+            test_content: 'console.log("Test successful")'
+            test_extension: 'js'
+          - language: c
+            dockerfile: Dockerfile.c
+            size_target: '<250MB'
+            test_command: 'sh -c "gcc test.c -o test && ./test"'
+            test_content: |
+              #include <stdio.h>
+              int main() { 
+                  printf("Test successful\n"); 
+                  return 0; 
+              }
+            test_extension: 'c'
+          - language: cpp
+            dockerfile: Dockerfile.cpp
+            size_target: '<250MB'
+            test_command: 'sh -c "g++ test.cpp -o test && ./test"'
+            test_content: |
+              #include <iostream>
+              int main() { 
+                  std::cout << "Test successful" << std::endl; 
+                  return 0; 
+              }
+            test_extension: 'cpp'
+          - language: java-jdk
+            dockerfile: Dockerfile.java-jdk
+            size_target: '<380MB'
+            test_command: 'sh -c "javac Test.java && java Test"'
+            test_content: |
+              public class Test { 
+                  public static void main(String[] args) { 
+                      System.out.println("Test successful"); 
+                  } 
+              }
+            test_extension: 'java'
+          - language: java-jre
+            dockerfile: Dockerfile.java-jre
+            size_target: '<220MB'
+            test_command: 'echo "JRE runtime only - requires pre-compiled .class files"'
+            test_content: ''
+            test_extension: 'txt'
+          - language: rust
+            dockerfile: Dockerfile.rust
+            size_target: '<250MB'
+            test_command: 'sh -c "rustc test.rs && ./test"'
+            test_content: 'fn main() { println!("Test successful"); }'
+            test_extension: 'rs'
+          - language: dotnet-sdk
+            dockerfile: Dockerfile.dotnet-sdk
+            size_target: '<450MB'
+            test_command: 'sh -c "cd /tmp && dotnet new console -n test --force && echo \"Console.WriteLine(\\\"Test successful\\\");\" > /tmp/test/Program.cs && cd /tmp/test && dotnet run"'
+            test_content: ''
+            test_extension: 'txt'
+          - language: dotnet-runtime
+            dockerfile: Dockerfile.dotnet-runtime
+            size_target: '<180MB'
+            test_command: 'echo ".NET runtime only - requires pre-compiled .dll files"'
+            test_content: ''
+            test_extension: 'txt'
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: ${{ matrix.language }}
+      dockerfile_path: images/${{ matrix.dockerfile }}
+      size_target: ${{ matrix.size_target }}
+      test_command: ${{ matrix.test_command }}
+      test_file_content: ${{ matrix.test_content }}
+      test_file_extension: ${{ matrix.test_extension }}
     secrets: inherit
 
   # Comprehensive reporting after all builds complete
   report:
-    needs: [
-      build-base, 
-      build-python, 
-      build-go, 
-      build-node, 
-      build-c, 
-      build-cpp, 
-      build-java-jdk, 
-      build-java-jre, 
-      build-rust, 
-      build-dotnet-sdk, 
-      build-dotnet-runtime
-    ]
+    needs: [build-base, build-languages]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -97,69 +127,52 @@ jobs:
           echo "## PetriBench Build All - Complete Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Build Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | Status | Size | Target |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Status | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|--------|" >> $GITHUB_STEP_SUMMARY
           
           # Base image
           if [ "${{ needs.build-base.result }}" = "success" ]; then
-            echo "| petribench-base | ✅ Success | ${{ needs.build-base.outputs.image-size || 'N/A' }} | <40MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-base | ✅ Success | <40MB |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| petribench-base | ❌ Failed | N/A | <40MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-base | ❌ Failed | <40MB |" >> $GITHUB_STEP_SUMMARY
           fi
           
-          # Language images
-          declare -A results=(
-            ["python"]="${{ needs.build-python.result }}"
-            ["go"]="${{ needs.build-go.result }}"
-            ["node"]="${{ needs.build-node.result }}"
-            ["c"]="${{ needs.build-c.result }}"
-            ["cpp"]="${{ needs.build-cpp.result }}"
-            ["java-jdk"]="${{ needs.build-java-jdk.result }}"
-            ["java-jre"]="${{ needs.build-java-jre.result }}"
-            ["rust"]="${{ needs.build-rust.result }}"
-            ["dotnet-sdk"]="${{ needs.build-dotnet-sdk.result }}"
-            ["dotnet-runtime"]="${{ needs.build-dotnet-runtime.result }}"
-          )
-          
-          declare -A targets=(
-            ["python"]="<100MB"
-            ["go"]="<60MB"
-            ["node"]="<100MB"
-            ["c"]="<250MB"
-            ["cpp"]="<250MB"
-            ["java-jdk"]="<380MB"
-            ["java-jre"]="<220MB"
-            ["rust"]="<250MB"
-            ["dotnet-sdk"]="<450MB"
-            ["dotnet-runtime"]="<180MB"
-          )
-          
-          for image in "${!results[@]}"; do
-            if [ "${results[$image]}" = "success" ]; then
-              echo "| petribench-$image | ✅ Success | N/A | ${targets[$image]} |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| petribench-$image | ❌ Failed | N/A | ${targets[$image]} |" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
+          # Language images matrix results
+          if [ "${{ needs.build-languages.result }}" = "success" ]; then
+            echo "| petribench-python | ✅ Success | <100MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-go | ✅ Success | <60MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-node | ✅ Success | <100MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-c | ✅ Success | <250MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-cpp | ✅ Success | <250MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-java-jdk | ✅ Success | <380MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-java-jre | ✅ Success | <220MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-rust | ✅ Success | <250MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-dotnet-sdk | ✅ Success | <450MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-dotnet-runtime | ✅ Success | <180MB |" >> $GITHUB_STEP_SUMMARY
+            language_success=10
+          else
+            echo "| petribench-languages | ❌ Failed | Various |" >> $GITHUB_STEP_SUMMARY
+            echo "Note: Matrix job failed - check individual matrix results in logs" >> $GITHUB_STEP_SUMMARY
+            language_success=0
+          fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Summary Statistics" >> $GITHUB_STEP_SUMMARY
           
-          success_count=0
+          base_success=0
+          if [ "${{ needs.build-base.result }}" = "success" ]; then
+            base_success=1
+          fi
+          
+          total_success=$((base_success + language_success))
           total_count=11
           
-          for result in "${{ needs.build-base.result }}" "${results[@]}"; do
-            if [ "$result" = "success" ]; then
-              ((success_count++))
-            fi
-          done
-          
           echo "- **Total Images**: $total_count" >> $GITHUB_STEP_SUMMARY
-          echo "- **Successful Builds**: $success_count" >> $GITHUB_STEP_SUMMARY
-          echo "- **Failed Builds**: $((total_count - success_count))" >> $GITHUB_STEP_SUMMARY
-          echo "- **Success Rate**: $(( success_count * 100 / total_count ))%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Successful Builds**: $total_success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failed Builds**: $((total_count - total_success))" >> $GITHUB_STEP_SUMMARY
+          echo "- **Success Rate**: $(( total_success * 100 / total_count ))%" >> $GITHUB_STEP_SUMMARY
           
-          if [ $success_count -eq $total_count ]; then
+          if [ $total_success -eq $total_count ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "🎉 **All images built successfully!**" >> $GITHUB_STEP_SUMMARY
           else
