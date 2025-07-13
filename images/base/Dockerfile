@@ -12,7 +12,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install smem2 for enhanced PSS/USS measurement
-RUN pip3 install --no-cache-dir smem2
+RUN pip3 install --no-cache-dir --break-system-packages smem2
 
 # Create directories for measurement and test code
 RUN mkdir -p /app /measurements
