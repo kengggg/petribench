@@ -15,9 +15,12 @@ docker pull ghcr.io/kengggg/petribench-python:latest
 docker pull ghcr.io/kengggg/petribench-go:latest
 docker pull ghcr.io/kengggg/petribench-node:latest
 docker pull ghcr.io/kengggg/petribench-c:latest
-docker pull ghcr.io/kengggg/petribench-java:latest
+docker pull ghcr.io/kengggg/petribench-cpp:latest
+docker pull ghcr.io/kengggg/petribench-java-jdk:latest
+docker pull ghcr.io/kengggg/petribench-java-jre:latest
 docker pull ghcr.io/kengggg/petribench-rust:latest
-docker pull ghcr.io/kengggg/petribench-csharp:latest
+docker pull ghcr.io/kengggg/petribench-dotnet-sdk:latest
+docker pull ghcr.io/kengggg/petribench-dotnet-runtime:latest
 ```
 
 ### Basic Usage
@@ -111,18 +114,18 @@ docker run --rm -v $(pwd)/benchmark.dll:/app/benchmark.dll \
 
 ### fizzbuzzmem Integration (Example Use Case)
 
-PetriBench can replace existing fizzbuzz Docker images:
+PetriBench can replace existing benchmark Docker images:
 
 ```bash
 # Tag petribench image for fizzbuzzmem compatibility
-docker tag ghcr.io/kengggg/petribench-python:latest fizzbuzz-python
+docker tag ghcr.io/kengggg/petribench-python:latest benchmark-python
 
 # Use with existing fizzbuzzmem measurement script
 docker run --rm \
-  -v "$(pwd)/fizzbuzz.py:/app/fizzbuzz.py" \
+  -v "$(pwd)/benchmark.py:/workspace/benchmark.py" \
   --memory=512m --cpus=1.0 \
-  fizzbuzz-python \
-  /usr/bin/time -v python3 fizzbuzz.py
+  benchmark-python \
+  /usr/bin/time -v python3 benchmark.py
 ```
 
 ### Custom Measurement Workflows
@@ -150,10 +153,13 @@ docker run --rm \
 | `petribench-python` | <100MB | Python 3.12 | petribench-base + python3 |
 | `petribench-go` | <60MB | Go 1.21+ | petribench-base + golang |
 | `petribench-node` | <100MB | Node.js 20 LTS | petribench-base + nodejs |
-| `petribench-c` | <250MB | C/C++ GCC 13 | petribench-base + gcc/g++ |
-| `petribench-java` | <250MB | OpenJDK 17 | petribench-base + openjdk-jre |
+| `petribench-c` | <250MB | C GCC 13 | petribench-base + gcc |
+| `petribench-cpp` | <250MB | C++ G++ 13 | petribench-base + g++ |
+| `petribench-java-jdk` | <380MB | OpenJDK 17 JDK | petribench-base + openjdk-jdk |
+| `petribench-java-jre` | <220MB | OpenJDK 17 JRE | petribench-base + openjdk-jre |
 | `petribench-rust` | <250MB | Rust 1.71+ | petribench-base + rustc |
-| `petribench-csharp` | <250MB | .NET 8 | petribench-base + dotnet-runtime |
+| `petribench-dotnet-sdk` | <450MB | .NET 8 SDK | petribench-base + dotnet-sdk |
+| `petribench-dotnet-runtime` | <180MB | .NET 8 Runtime | petribench-base + dotnet-runtime |
 
 ## Development
 
@@ -161,10 +167,10 @@ docker run --rm \
 
 ```bash
 # Build base image
-docker build -t petribench-base ./images/base/
+docker build -f ./images/Dockerfile.base -t petribench-base ./images/
 
 # Build language image
-docker build -t petribench-python ./images/python/
+docker build -f ./images/Dockerfile.python -t petribench-python ./images/
 ```
 
 ### Test Compatibility
@@ -208,14 +214,14 @@ docker images | grep petribench
 
 ## Contributing
 
-1. **Add New Language**: Create `images/{language}/Dockerfile` extending `petribench-base`
+1. **Add New Language**: Create `images/Dockerfile.{language}` extending `petribench-base`
 2. **Update CI**: Add language to matrix in `.github/workflows/build-and-publish.yml`
 3. **Add Examples**: Create `examples/benchmark.{ext}` for the language
 4. **Test**: Update `scripts/build-all.sh` with test cases
 5. **Document**: Update README with usage examples and image specifications
 
 ### Currently Supported Languages
-✅ Python, Go, Node.js, C/C++, Java, Rust, C#/.NET (8 total)
+✅ Python, Go, Node.js, C, C++, Java (JDK/JRE), Rust, .NET (SDK/Runtime) (11 total images, 8 language families)
 
 ## Support
 

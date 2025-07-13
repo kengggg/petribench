@@ -1,0 +1,34 @@
+name: Build Go Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.go'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.go'
+      - '.github/workflows/build-go.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.go'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.go'
+      - '.github/workflows/build-go.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-go:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'go'
+      dockerfile_path: 'images/Dockerfile.go'
+      context_path: './images/'
+      size_target: '<60MB'
+      test_command: 'go run test.go'
+      test_file_content: 'package main; import "fmt"; func main() { fmt.Println("Test successful") }'
+      test_file_extension: 'go'
+    secrets: inherit

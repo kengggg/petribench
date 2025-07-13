@@ -1,0 +1,166 @@
+name: Shared Docker Build Template
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: 'Name of the Docker image (e.g., python, go, base)'
+        required: true
+        type: string
+      dockerfile_path:
+        description: 'Path to Dockerfile (e.g., images/Dockerfile.python)'
+        required: true
+        type: string
+      context_path:
+        description: 'Build context path (default: ./images/)'
+        required: false
+        type: string
+        default: './images/'
+      size_target:
+        description: 'Size target for the image (e.g., <100MB)'
+        required: false
+        type: string
+        default: '<500MB'
+      test_command:
+        description: 'Command to test the image functionality'
+        required: false
+        type: string
+        default: 'echo "No test specified"'
+      test_file_content:
+        description: 'Content for test file'
+        required: false
+        type: string
+        default: ''
+      test_file_extension:
+        description: 'Extension for test file (e.g., py, go, js)'
+        required: false
+        type: string
+        default: 'txt'
+      platforms:
+        description: 'Target platforms for build'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64'
+      depends_on_base:
+        description: 'Whether this image depends on base image'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  REGISTRY: ghcr.io
+  REPO_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-size: ${{ steps.size-check.outputs.size }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REPO_NAME }}-${{ inputs.image_name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context_path }}
+          file: ${{ inputs.dockerfile_path }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.REPO_NAME }}-base:latest
+
+      - name: Create test file
+        if: github.event_name == 'pull_request' && inputs.test_file_content != ''
+        run: |
+          echo '${{ inputs.test_file_content }}' > test.${{ inputs.test_file_extension }}
+
+      - name: Test image functionality
+        if: github.event_name == 'pull_request' && inputs.test_command != 'echo "No test specified"'
+        run: |
+          # Get the appropriate image tag for testing
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            IMAGE_TAG="${{ env.REGISTRY }}/${{ env.REPO_NAME }}-${{ inputs.image_name }}:pr-${{ github.event.number }}"
+          else
+            IMAGE_TAG="${{ env.REGISTRY }}/${{ env.REPO_NAME }}-${{ inputs.image_name }}:${{ github.ref_name }}"
+          fi
+          
+          # Test basic functionality
+          if [ -f "test.${{ inputs.test_file_extension }}" ]; then
+            docker run --rm \
+              -v $(pwd)/test.${{ inputs.test_file_extension }}:/workspace/test.${{ inputs.test_file_extension }} \
+              $IMAGE_TAG \
+              ${{ inputs.test_command }}
+          else
+            docker run --rm $IMAGE_TAG ${{ inputs.test_command }}
+          fi
+
+      - name: Test RSS measurement capability
+        if: github.event_name == 'pull_request' && inputs.image_name == 'python'
+        run: |
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.REPO_NAME }}-${{ inputs.image_name }}:pr-${{ github.event.number }}"
+          docker run --rm \
+            -v $(pwd)/test.${{ inputs.test_file_extension }}:/workspace/test.${{ inputs.test_file_extension }} \
+            $IMAGE_TAG \
+            /usr/bin/time -v ${{ inputs.test_command }} 2>&1 | grep "Maximum resident set size"
+
+      - name: Check image size
+        id: size-check
+        if: github.event_name != 'pull_request'
+        run: |
+          # Pull the image to check its size
+          docker pull ${{ env.REGISTRY }}/${{ env.REPO_NAME }}-${{ inputs.image_name }}:latest
+          
+          # Get image size
+          SIZE=$(docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | \
+                 grep "${{ env.REPO_NAME }}-${{ inputs.image_name }}" | \
+                 grep "latest" | \
+                 awk '{print $3}')
+          
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "Image size: $SIZE (Target: ${{ inputs.size_target }})"
+          
+          # Add to step summary
+          echo "## Image Size Report for ${{ inputs.image_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Size | Target | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| petribench-${{ inputs.image_name }} | $SIZE | ${{ inputs.size_target }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cleanup test files
+        if: always()
+        run: |
+          rm -f test.${{ inputs.test_file_extension }}

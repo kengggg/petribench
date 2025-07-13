@@ -1,0 +1,44 @@
+name: Build Base Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.base'
+      - '.github/workflows/build-base.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.base'
+      - '.github/workflows/build-base.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      base-digest:
+        description: "Base image digest"
+        value: ${{ jobs.build-base.outputs.image-digest }}
+
+jobs:
+  build-base:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'base'
+      dockerfile_path: 'images/Dockerfile.base'
+      context_path: './images/'
+      size_target: '<40MB'
+      test_command: '/usr/bin/time --version && python3 -c "import subprocess; print(\"smem2 available:\", subprocess.run([\"smem2\", \"--version\"], capture_output=True).returncode == 0)"'
+      depends_on_base: false
+    secrets: inherit
+
+  notify-downstream:
+    needs: build-base
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger language image rebuilds
+        run: |
+          echo "Base image updated with digest: ${{ needs.build-base.outputs.image-digest }}"
+          echo "This should trigger downstream language image rebuilds"
+          # Note: Language workflows will detect base image changes through their path triggers

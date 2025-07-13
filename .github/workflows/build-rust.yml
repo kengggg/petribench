@@ -1,0 +1,34 @@
+name: Build Rust Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.rust'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.rs'
+      - '.github/workflows/build-rust.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.rust'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.rs'
+      - '.github/workflows/build-rust.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-rust:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'rust'
+      dockerfile_path: 'images/Dockerfile.rust'
+      context_path: './images/'
+      size_target: '<250MB'
+      test_command: 'sh -c "rustc test.rs && ./test"'
+      test_file_content: 'fn main() { println!("Test successful"); }'
+      test_file_extension: 'rs'
+    secrets: inherit

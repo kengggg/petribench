@@ -1,0 +1,39 @@
+name: Build Java JDK Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.java-jdk'
+      - 'images/Dockerfile.base'
+      - 'examples/Benchmark.java'
+      - '.github/workflows/build-java-jdk.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.java-jdk'
+      - 'images/Dockerfile.base'
+      - 'examples/Benchmark.java'
+      - '.github/workflows/build-java-jdk.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-java-jdk:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'java-jdk'
+      dockerfile_path: 'images/Dockerfile.java-jdk'
+      context_path: './images/'
+      size_target: '<380MB'
+      test_command: 'sh -c "javac Test.java && java Test"'
+      test_file_content: |
+        public class Test { 
+            public static void main(String[] args) { 
+                System.out.println("Test successful"); 
+            } 
+        }
+      test_file_extension: 'java'
+    secrets: inherit

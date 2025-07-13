@@ -1,0 +1,34 @@
+name: Build Python Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.python'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.py'
+      - '.github/workflows/build-python.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.python'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.py'
+      - '.github/workflows/build-python.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-python:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'python'
+      dockerfile_path: 'images/Dockerfile.python'
+      context_path: './images/'
+      size_target: '<100MB'
+      test_command: 'python3 test.py'
+      test_file_content: 'print("Test successful")'
+      test_file_extension: 'py'
+    secrets: inherit

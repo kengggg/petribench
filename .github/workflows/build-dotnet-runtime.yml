@@ -1,0 +1,32 @@
+name: Build .NET Runtime Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.dotnet-runtime'
+      - 'images/Dockerfile.base'
+      - 'examples/Program.dll'
+      - '.github/workflows/build-dotnet-runtime.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.dotnet-runtime'
+      - 'images/Dockerfile.base'
+      - 'examples/Program.dll'
+      - '.github/workflows/build-dotnet-runtime.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-dotnet-runtime:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'dotnet-runtime'
+      dockerfile_path: 'images/Dockerfile.dotnet-runtime'
+      context_path: './images/'
+      size_target: '<180MB'
+      test_command: 'echo ".NET runtime only - requires pre-compiled .dll files"'
+    secrets: inherit

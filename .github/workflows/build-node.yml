@@ -1,0 +1,34 @@
+name: Build Node.js Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.node'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.js'
+      - '.github/workflows/build-node.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.node'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.js'
+      - '.github/workflows/build-node.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-node:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'node'
+      dockerfile_path: 'images/Dockerfile.node'
+      context_path: './images/'
+      size_target: '<100MB'
+      test_command: 'node test.js'
+      test_file_content: 'console.log("Test successful")'
+      test_file_extension: 'js'
+    secrets: inherit

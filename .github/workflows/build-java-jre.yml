@@ -1,0 +1,32 @@
+name: Build Java JRE Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.java-jre'
+      - 'images/Dockerfile.base'
+      - 'examples/Benchmark.class'
+      - '.github/workflows/build-java-jre.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.java-jre'
+      - 'images/Dockerfile.base'
+      - 'examples/Benchmark.class'
+      - '.github/workflows/build-java-jre.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-java-jre:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'java-jre'
+      dockerfile_path: 'images/Dockerfile.java-jre'
+      context_path: './images/'
+      size_target: '<220MB'
+      test_command: 'echo "JRE runtime only - requires pre-compiled .class files"'
+    secrets: inherit

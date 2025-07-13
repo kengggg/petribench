@@ -20,20 +20,18 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Create test fizzbuzz program
+# Create test benchmark program
 TEST_FILE="$(mktemp).py"
 cat > "$TEST_FILE" << 'EOF'
 #!/usr/bin/env python3
-# Simple FizzBuzz for testing memory measurement
-for i in range(1, 101):
-    if i % 15 == 0:
-        print("FizzBuzz")
-    elif i % 3 == 0:
-        print("Fizz")
-    elif i % 5 == 0:
-        print("Buzz")
-    else:
-        print(i)
+# Simple benchmark for testing memory measurement
+import time
+data = []
+for i in range(1, 1001):
+    data.append(i * i)
+    if i % 100 == 0:
+        print(f"Processed {i} items")
+print(f"Total: {sum(data)}")
 EOF
 
 echo "Created test file: $TEST_FILE"
@@ -41,21 +39,23 @@ echo ""
 
 # Test 1: Basic image functionality
 echo -e "${YELLOW}Test 1: Basic image functionality${NC}"
-IMAGE_NAME="ghcr.io/kengggg/petribench-python:latest"
 
-# Try to pull image (if not built locally)
+# Prefer local image first, then try registry image
 echo "Checking image availability..."
-if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
-    echo "Image not found locally, attempting to pull..."
+if docker image inspect "petribench-python:latest" &>/dev/null; then
+    IMAGE_NAME="petribench-python:latest"
+    echo "Using local image: $IMAGE_NAME"
+elif docker image inspect "ghcr.io/kengggg/petribench-python:latest" &>/dev/null; then
+    IMAGE_NAME="ghcr.io/kengggg/petribench-python:latest"
+    echo "Using registry image: $IMAGE_NAME"
+else
+    echo "No local image found, attempting to pull..."
+    IMAGE_NAME="ghcr.io/kengggg/petribench-python:latest"
     if ! docker pull "$IMAGE_NAME" 2>/dev/null; then
-        echo -e "${YELLOW}Warning: Could not pull image. Assuming local build...${NC}"
-        IMAGE_NAME="petribench-python:latest"
-        if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
-            echo -e "${RED}Error: Image $IMAGE_NAME not found. Build it first with:${NC}"
-            echo "docker build -t petribench-python:latest ./images/python/"
-            rm -f "$TEST_FILE"
-            exit 1
-        fi
+        echo -e "${RED}Error: Could not find or pull image. Build it first with:${NC}"
+        echo "docker build -f ./images/Dockerfile.python -t petribench-python:latest ./images/"
+        rm -f "$TEST_FILE"
+        exit 1
     fi
 fi
 
@@ -64,11 +64,11 @@ echo ""
 
 # Test 2: fizzbuzzmem pattern compatibility
 echo -e "${YELLOW}Test 2: fizzbuzzmem pattern compatibility${NC}"
-echo "Running: docker run --rm -v \$TEST_FILE:/app/fizzbuzz.py --memory=512m --cpus=1.0 $IMAGE_NAME"
+echo "Running: docker run --rm -v \$TEST_FILE:/workspace/benchmark.py --memory=512m --cpus=1.0 $IMAGE_NAME"
 
 # Capture full output including stderr for time command
 FULL_OUTPUT=$(docker run --rm \
-    -v "$TEST_FILE:/app/fizzbuzz.py" \
+    -v "$TEST_FILE:/workspace/benchmark.py" \
     --memory=512m --cpus=1.0 \
     "$IMAGE_NAME" 2>&1)
 
@@ -100,20 +100,20 @@ else
     exit 1
 fi
 
-# Test 4: Validate FizzBuzz output
+# Test 4: Validate benchmark output
 echo ""
-echo -e "${YELLOW}Test 4: FizzBuzz output validation${NC}"
+echo -e "${YELLOW}Test 4: Benchmark output validation${NC}"
 
 # Check last few lines of output (before time statistics)
-FIZZBUZZ_OUTPUT=$(echo "$FULL_OUTPUT" | head -n 100)
-LAST_LINE=$(echo "$FIZZBUZZ_OUTPUT" | tail -1)
+BENCHMARK_OUTPUT=$(echo "$FULL_OUTPUT" | head -n 100)
+LAST_LINE=$(echo "$BENCHMARK_OUTPUT" | tail -1)
 
-if [ "$LAST_LINE" = "Buzz" ]; then
-    echo -e "${GREEN}✓ FizzBuzz output ends correctly with 'Buzz'${NC}"
+if [[ "$LAST_LINE" =~ ^Total:\ [0-9]+$ ]]; then
+    echo -e "${GREEN}✓ Benchmark output ends correctly with total${NC}"
 else
-    echo -e "${RED}✗ Expected last line to be 'Buzz', got: '$LAST_LINE'${NC}"
-    echo "First 10 lines of FizzBuzz output:"
-    echo "$FIZZBUZZ_OUTPUT" | head -10
+    echo -e "${RED}✗ Expected last line to match 'Total: [number]', got: '$LAST_LINE'${NC}"
+    echo "First 10 lines of benchmark output:"
+    echo "$BENCHMARK_OUTPUT" | head -10
     exit 1
 fi
 
@@ -125,7 +125,7 @@ MEASUREMENTS=()
 for i in {1..3}; do
     echo -n "Run $i... "
     OUTPUT=$(docker run --rm \
-        -v "$TEST_FILE:/app/fizzbuzz.py" \
+        -v "$TEST_FILE:/workspace/benchmark.py" \
         --memory=512m --cpus=1.0 \
         "$IMAGE_NAME" 2>&1)
     
@@ -164,4 +164,4 @@ echo -e "${GREEN}✓ GNU time RSS measurement working correctly${NC}"
 echo -e "${GREEN}✓ Volume mount and resource limits supported${NC}"
 echo ""
 echo "To use with fizzbuzzmem, replace current Docker images with:"
-echo "  docker tag $IMAGE_NAME fizzbuzz-python"
+echo "  docker tag $IMAGE_NAME benchmark-python"

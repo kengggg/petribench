@@ -1,0 +1,32 @@
+name: Build .NET SDK Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.dotnet-sdk'
+      - 'images/Dockerfile.base'
+      - 'examples/Benchmark.cs'
+      - '.github/workflows/build-dotnet-sdk.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.dotnet-sdk'
+      - 'images/Dockerfile.base'
+      - 'examples/Benchmark.cs'
+      - '.github/workflows/build-dotnet-sdk.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-dotnet-sdk:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'dotnet-sdk'
+      dockerfile_path: 'images/Dockerfile.dotnet-sdk'
+      context_path: './images/'
+      size_target: '<450MB'
+      test_command: 'sh -c "cd /tmp && dotnet new console -n test --force && echo \"Console.WriteLine(\\\"Test successful\\\");\" > /tmp/test/Program.cs && cd /tmp/test && dotnet run"'
+    secrets: inherit

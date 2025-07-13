@@ -127,10 +127,10 @@ CMD ["python3", "-m", "timeit", "-s", "pass"]
 7  API / CLI Sketch
 
 # One-off run
-petri bench python examples/fizzbuzz.py --runs 50 --output fizz.json
+petri bench python examples/benchmark.py --runs 50 --output bench.json
 
 # Generate Slack-ready table
-petri report fizz.json --format slack
+petri report bench.json --format slack
 
 # Add new language layer interactively
 petri init zig --zig-version 0.12.0

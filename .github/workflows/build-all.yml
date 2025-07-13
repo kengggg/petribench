@@ -1,0 +1,168 @@
+name: Build All Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild all images even if no changes detected'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # Weekly rebuild on Sundays at 2 AM UTC for security updates
+    - cron: '0 2 * * 0'
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/build-all.yml'
+      - '.github/workflows/shared-build.yml'
+
+jobs:
+  # Build base image first
+  build-base:
+    uses: ./.github/workflows/build-base.yml
+    secrets: inherit
+
+  # Build all language images in parallel (depends on base)
+  build-python:
+    needs: build-base
+    uses: ./.github/workflows/build-python.yml
+    secrets: inherit
+
+  build-go:
+    needs: build-base
+    uses: ./.github/workflows/build-go.yml
+    secrets: inherit
+
+  build-node:
+    needs: build-base
+    uses: ./.github/workflows/build-node.yml
+    secrets: inherit
+
+  build-c:
+    needs: build-base
+    uses: ./.github/workflows/build-c.yml
+    secrets: inherit
+
+  build-cpp:
+    needs: build-base
+    uses: ./.github/workflows/build-cpp.yml
+    secrets: inherit
+
+  build-java-jdk:
+    needs: build-base
+    uses: ./.github/workflows/build-java-jdk.yml
+    secrets: inherit
+
+  build-java-jre:
+    needs: build-base
+    uses: ./.github/workflows/build-java-jre.yml
+    secrets: inherit
+
+  build-rust:
+    needs: build-base
+    uses: ./.github/workflows/build-rust.yml
+    secrets: inherit
+
+  build-dotnet-sdk:
+    needs: build-base
+    uses: ./.github/workflows/build-dotnet-sdk.yml
+    secrets: inherit
+
+  build-dotnet-runtime:
+    needs: build-base
+    uses: ./.github/workflows/build-dotnet-runtime.yml
+    secrets: inherit
+
+  # Comprehensive reporting after all builds complete
+  report:
+    needs: [
+      build-base, 
+      build-python, 
+      build-go, 
+      build-node, 
+      build-c, 
+      build-cpp, 
+      build-java-jdk, 
+      build-java-jre, 
+      build-rust, 
+      build-dotnet-sdk, 
+      build-dotnet-runtime
+    ]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Build Summary Report
+        run: |
+          echo "## PetriBench Build All - Complete Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Status | Size | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Base image
+          if [ "${{ needs.build-base.result }}" = "success" ]; then
+            echo "| petribench-base | ✅ Success | ${{ needs.build-base.outputs.image-size || 'N/A' }} | <40MB |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| petribench-base | ❌ Failed | N/A | <40MB |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Language images
+          declare -A results=(
+            ["python"]="${{ needs.build-python.result }}"
+            ["go"]="${{ needs.build-go.result }}"
+            ["node"]="${{ needs.build-node.result }}"
+            ["c"]="${{ needs.build-c.result }}"
+            ["cpp"]="${{ needs.build-cpp.result }}"
+            ["java-jdk"]="${{ needs.build-java-jdk.result }}"
+            ["java-jre"]="${{ needs.build-java-jre.result }}"
+            ["rust"]="${{ needs.build-rust.result }}"
+            ["dotnet-sdk"]="${{ needs.build-dotnet-sdk.result }}"
+            ["dotnet-runtime"]="${{ needs.build-dotnet-runtime.result }}"
+          )
+          
+          declare -A targets=(
+            ["python"]="<100MB"
+            ["go"]="<60MB"
+            ["node"]="<100MB"
+            ["c"]="<250MB"
+            ["cpp"]="<250MB"
+            ["java-jdk"]="<380MB"
+            ["java-jre"]="<220MB"
+            ["rust"]="<250MB"
+            ["dotnet-sdk"]="<450MB"
+            ["dotnet-runtime"]="<180MB"
+          )
+          
+          for image in "${!results[@]}"; do
+            if [ "${results[$image]}" = "success" ]; then
+              echo "| petribench-$image | ✅ Success | N/A | ${targets[$image]} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| petribench-$image | ❌ Failed | N/A | ${targets[$image]} |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Summary Statistics" >> $GITHUB_STEP_SUMMARY
+          
+          success_count=0
+          total_count=11
+          
+          for result in "${{ needs.build-base.result }}" "${results[@]}"; do
+            if [ "$result" = "success" ]; then
+              ((success_count++))
+            fi
+          done
+          
+          echo "- **Total Images**: $total_count" >> $GITHUB_STEP_SUMMARY
+          echo "- **Successful Builds**: $success_count" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failed Builds**: $((total_count - success_count))" >> $GITHUB_STEP_SUMMARY
+          echo "- **Success Rate**: $(( success_count * 100 / total_count ))%" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $success_count -eq $total_count ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **All images built successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Some builds failed. Check individual workflow logs.**" >> $GITHUB_STEP_SUMMARY
+          fi

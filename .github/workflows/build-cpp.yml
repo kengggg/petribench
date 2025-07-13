@@ -1,0 +1,39 @@
+name: Build C++ Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.cpp'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.cpp'
+      - '.github/workflows/build-cpp.yml'
+      - '.github/workflows/shared-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/Dockerfile.cpp'
+      - 'images/Dockerfile.base'
+      - 'examples/benchmark.cpp'
+      - '.github/workflows/build-cpp.yml'
+      - '.github/workflows/shared-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-cpp:
+    uses: ./.github/workflows/shared-build.yml
+    with:
+      image_name: 'cpp'
+      dockerfile_path: 'images/Dockerfile.cpp'
+      context_path: './images/'
+      size_target: '<250MB'
+      test_command: 'sh -c "g++ test.cpp -o test && ./test"'
+      test_file_content: |
+        #include <iostream>
+        int main() { 
+            std::cout << "Test successful" << std::endl; 
+            return 0; 
+        }
+      test_file_extension: 'cpp'
+    secrets: inherit
