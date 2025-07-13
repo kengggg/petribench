@@ -8,16 +8,16 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         wget \
         ca-certificates \
-        apt-transport-https \
         && \
     wget -O packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb && \
     dpkg -i packages-microsoft-prod.deb && \
+    rm packages-microsoft-prod.deb && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        dotnet-runtime-8.0 \
+        aspnetcore-runtime-8.0 \
         && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* packages-microsoft-prod.deb
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Switch back to non-root user
 USER tester
