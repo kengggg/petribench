@@ -79,6 +79,8 @@ on:
     - cron: '0 2 * * 0'
 ```
 
+**Note**: Uses matrix strategy to stay under GitHub's 20 workflow reference limit.
+
 ## Technical Features
 
 ### **Shared Template Benefits**
@@ -160,6 +162,18 @@ act -W .github/workflows/build-python.yml
 - Implement automated performance testing
 - Add cross-architecture build matrix
 - Enhance reporting with metrics collection
+
+## GitHub Actions Limitations Encountered
+
+### **Workflow Reference Limit**
+**Issue**: GitHub Actions limits workflows to 20 external workflow references.
+**Impact**: Initial orchestrator design with 11 individual workflow calls exceeded this limit (21 total).
+**Solution**: Implemented matrix strategy in `build-all.yml` reducing references from 21 to 2.
+
+**Technical Details**:
+- **Before**: 11 individual job calls + each calling shared-build.yml = 21+ references
+- **After**: 1 matrix job calling shared-build.yml = 2 references total
+- **Benefit**: Stays under limit while maintaining all functionality
 
 ## Rollback Plan
 
