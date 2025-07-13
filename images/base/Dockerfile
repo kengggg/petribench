@@ -18,7 +18,7 @@ RUN pip3 install --no-cache-dir --break-system-packages smem2
 RUN mkdir -p /app /measurements
 
 # Create non-root user for security
-RUN useradd -m -u 1000 -g 1000 tester
+RUN groupadd -g 1000 tester && useradd -m -u 1000 -g 1000 tester
 
 # Set working directory for volume mounts (fizzbuzzmem compatibility)
 WORKDIR /app
