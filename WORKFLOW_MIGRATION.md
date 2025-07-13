@@ -175,6 +175,17 @@ act -W .github/workflows/build-python.yml
 - **After**: 1 matrix job calling shared-build.yml = 2 references total
 - **Benefit**: Stays under limit while maintaining all functionality
 
+### **Nested Workflow Permissions**
+**Issue**: GitHub Actions restricts permissions when workflows call other workflows.
+**Impact**: `shared-build.yml` needs `packages: write` to push images, but only received `packages: read`.
+**Solution**: Added explicit permissions to all calling jobs.
+
+**Technical Details**:
+- **Error**: `The nested job 'build' is requesting 'packages: write', but is only allowed 'packages: read'`
+- **Root Cause**: Security restriction in nested workflow calls
+- **Fix**: Added `permissions: { contents: read, packages: write }` to all 12 calling workflows
+- **Files Updated**: `build-all.yml`, `build-base.yml`, and all 10 language workflows
+
 ## Rollback Plan
 
 If issues arise, the old monolithic workflow can be restored:
