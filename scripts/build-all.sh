@@ -30,7 +30,7 @@ fi
 
 echo ""
 
-# Build all language images (aligned with issue #1)
+# Build all language images (aligned with current Dockerfiles)
 LANGUAGES=("python" "go" "node" "c" "cpp" "java-jdk" "java-jre" "rust" "dotnet-sdk" "dotnet-runtime")
 
 for LANG in "${LANGUAGES[@]}"; do
@@ -110,12 +110,15 @@ for LANG in "${LANGUAGES[@]}"; do
                 echo -e "${RED}✗ C++ compilation/execution failed${NC}"
             fi
             ;;
-        java)
-            if docker run --rm -v /tmp/Test.java:/workspace/Test.java petribench-java sh -c "javac Test.java && java Test" >/dev/null 2>&1; then
-                echo -e "${GREEN}✓ Java compilation and execution working${NC}"
+        java-jdk)
+            if docker run --rm -v /tmp/Test.java:/workspace/Test.java petribench-java-jdk sh -c "javac Test.java && java Test" >/dev/null 2>&1; then
+                echo -e "${GREEN}✓ Java JDK compilation and execution working${NC}"
             else
-                echo -e "${RED}✗ Java compilation/execution failed${NC}"
+                echo -e "${RED}✗ Java JDK compilation/execution failed${NC}"
             fi
+            ;;
+        java-jre)
+            echo -e "${YELLOW}⚠ Java JRE runtime only (requires pre-compiled .class files)${NC}"
             ;;
         rust)
             if docker run --rm -v /tmp/test.rs:/workspace/test.rs petribench-rust sh -c "rustc test.rs && ./test" >/dev/null 2>&1; then
@@ -124,8 +127,15 @@ for LANG in "${LANGUAGES[@]}"; do
                 echo -e "${RED}✗ Rust compilation/execution failed${NC}"
             fi
             ;;
-        csharp)
-            echo -e "${YELLOW}⚠ C# runtime only (requires pre-compiled .dll)${NC}"
+        dotnet-sdk)
+            if docker run --rm petribench-dotnet-sdk dotnet --version >/dev/null 2>&1; then
+                echo -e "${GREEN}✓ .NET SDK working${NC}"
+            else
+                echo -e "${RED}✗ .NET SDK failed${NC}"
+            fi
+            ;;
+        dotnet-runtime)
+            echo -e "${YELLOW}⚠ .NET runtime only (requires pre-compiled .dll files)${NC}"
             ;;
     esac
 done
@@ -154,19 +164,21 @@ echo "  Other compiled languages (target: <250MB)"
 echo ""
 echo -e "${GREEN}=== Build complete! ===${NC}"
 echo ""
-echo "Available images (Issue #1 specification):"
-echo "  petribench-base     - Base image with procfs tools"
-echo "  petribench-python   - Python 3.12 minimal runtime"
-echo "  petribench-go       - Go 1.21+ compiler"
-echo "  petribench-node     - Node.js 20 LTS runtime"
-echo "  petribench-c        - GCC 13 C compiler"
-echo "  petribench-cpp      - G++ 13 C++ compiler"
-echo "  petribench-java     - OpenJDK 21 runtime"
-echo "  petribench-rust     - Rust 1.71+ compiler"
-echo "  petribench-csharp   - .NET 8 runtime"
+echo "Available images:"
+echo "  petribench-base            - Base image with procfs tools"
+echo "  petribench-python          - Python 3.12 minimal runtime"
+echo "  petribench-go              - Go 1.21+ compiler"
+echo "  petribench-node            - Node.js 20 LTS runtime"
+echo "  petribench-c               - GCC 13 C compiler"
+echo "  petribench-cpp             - G++ 13 C++ compiler"
+echo "  petribench-java-jdk        - OpenJDK 21 JDK (development)"
+echo "  petribench-java-jre        - OpenJDK 21 JRE (runtime)"
+echo "  petribench-rust            - Rust 1.71+ compiler"
+echo "  petribench-dotnet-sdk      - .NET 8 SDK (development)"
+echo "  petribench-dotnet-runtime  - .NET 8 Runtime"
 echo ""
 echo "Next steps:"
-echo "  1. Test RSS measurement: ./scripts/test-rss-measurement.sh"
-echo "  2. Run examples: ./examples/measure-rss.sh python examples/benchmark.py"
-echo "  3. Publish to GHCR: gh workflow run build-publish.yml"
-echo "  4. Tag for fizzbuzzmem: docker tag petribench-python benchmark-python"
+echo "  1. Test memory measurement: ./scripts/measure-memory.sh --mode test python examples/benchmark.py"
+echo "  2. Build individual images: ./scripts/build-individual.sh [language]"
+echo "  3. Build base + all: ./scripts/build-base.sh"
+echo "  4. Publish to GHCR: gh workflow run build-all.yml"

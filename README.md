@@ -176,8 +176,8 @@ docker build -f ./images/Dockerfile.python -t petribench-python ./images/
 ### Test Compatibility
 
 ```bash
-# Test RSS measurement compatibility
-./scripts/test-rss-measurement.sh
+# Test memory measurement compatibility
+./scripts/measure-memory.sh --mode test python examples/benchmark.py
 
 # Test image sizes and functionality
 docker images | grep petribench
@@ -186,11 +186,15 @@ docker images | grep petribench
 ### Examples
 
 ```bash
-# RSS measurement example
-./examples/measure-rss.sh python examples/benchmark.py
+# Memory measurement demo (RSS, PSS, USS)
+./scripts/measure-memory.sh python examples/benchmark.py
 
-# PSS/USS measurement example  
-./examples/measure-pss-uss.sh python examples/benchmark.py
+# Specific measurement methods
+./scripts/measure-memory.sh --method rss python examples/benchmark.py
+./scripts/measure-memory.sh --method pss python examples/benchmark.py
+
+# Benchmark mode with statistical analysis
+./scripts/measure-memory.sh --mode benchmark python examples/benchmark.py
 ```
 
 ## Architecture
