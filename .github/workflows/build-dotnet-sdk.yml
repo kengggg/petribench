@@ -6,7 +6,6 @@ on:
     paths:
       - 'images/Dockerfile.dotnet-sdk'
       - 'images/Dockerfile.base'
-      - 'examples/Benchmark.cs'
       - '.github/workflows/build-dotnet-sdk.yml'
       - '.github/workflows/shared-build.yml'
   pull_request:
@@ -14,7 +13,6 @@ on:
     paths:
       - 'images/Dockerfile.dotnet-sdk'
       - 'images/Dockerfile.base'
-      - 'examples/Benchmark.cs'
       - '.github/workflows/build-dotnet-sdk.yml'
       - '.github/workflows/shared-build.yml'
   workflow_dispatch:

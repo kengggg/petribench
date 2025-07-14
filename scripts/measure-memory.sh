@@ -22,11 +22,11 @@ USE_LOCAL=true
 VERBOSE=false
 
 # Available languages
-AVAILABLE_LANGUAGES=("python" "go" "node" "c" "cpp" "java-jdk" "java-jre" "rust" "dotnet-sdk" "dotnet-runtime")
+AVAILABLE_LANGUAGES=("python" "go" "node" "c" "cpp" "jdk" "jre" "rust" "dotnet-sdk" "dotnet-runtime")
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 [OPTIONS] <language> <script_file>"
+    echo "Usage: $0 [OPTIONS] <language> [script_file]"
     echo ""
     echo "DESCRIPTION:"
     echo "  Unified memory measurement tool supporting RSS, PSS, and USS metrics"
@@ -57,11 +57,12 @@ show_usage() {
     done
     echo ""
     echo "EXAMPLES:"
-    echo "  $0 python benchmark.py                    # Demo mode with all methods"
-    echo "  $0 --mode test python benchmark.py       # Test mode with consistency checks"
-    echo "  $0 --method rss go benchmark.go          # Only RSS measurement"
-    echo "  $0 --local rust benchmark.rs             # Use local image"
-    echo "  $0 --registry --verbose node benchmark.js # Registry image with verbose output"
+    echo "  $0 python                                 # Auto-detect benchmark.py"
+    echo "  $0 python custom-script.py               # Use custom script file"
+    echo "  $0 --mode test python                    # Test mode with auto-detection"
+    echo "  $0 --method rss go                       # RSS measurement with auto-detection"
+    echo "  $0 --local rust                          # Local image with auto-detection"
+    echo "  $0 --registry --verbose node benchmark.js # Registry image with custom file"
 }
 
 # Parse command line arguments
@@ -114,8 +115,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required arguments
-if [ -z "$LANGUAGE" ] || [ -z "$SCRIPT_FILE" ]; then
-    echo -e "${RED}Error: Missing required arguments${NC}"
+if [ -z "$LANGUAGE" ]; then
+    echo -e "${RED}Error: Language parameter required${NC}"
     echo ""
     show_usage
     exit 1
@@ -126,6 +127,42 @@ if [[ ! " ${AVAILABLE_LANGUAGES[*]} " =~ " $LANGUAGE " ]]; then
     echo -e "${RED}Error: Unknown language '$LANGUAGE'${NC}"
     echo ""
     show_usage
+    exit 1
+fi
+
+# Auto-detect script file if not provided
+if [ -z "$SCRIPT_FILE" ]; then
+    echo -e "${YELLOW}No script file specified, attempting auto-detection...${NC}"
+    
+    # Define benchmark file mappings for each language
+    case $LANGUAGE in
+        python) SCRIPT_FILE="scripts/benchmarks/benchmark.py" ;;
+        go) SCRIPT_FILE="scripts/benchmarks/benchmark.go" ;;
+        node) SCRIPT_FILE="scripts/benchmarks/benchmark.js" ;;
+        c) SCRIPT_FILE="scripts/benchmarks/benchmark.c" ;;
+        cpp) SCRIPT_FILE="scripts/benchmarks/benchmark.cpp" ;;
+        jdk) SCRIPT_FILE="scripts/benchmarks/Benchmark.java" ;;
+        jre) SCRIPT_FILE="scripts/benchmarks/Benchmark.class" ;;
+        rust) SCRIPT_FILE="scripts/benchmarks/benchmark.rs" ;;
+        dotnet-sdk) SCRIPT_FILE="scripts/benchmarks/Benchmark.cs" ;;
+        dotnet-runtime) SCRIPT_FILE="scripts/benchmarks/Benchmark.dll" ;;
+        *)
+            echo -e "${RED}Error: No auto-detection mapping for language '$LANGUAGE'${NC}"
+            echo "Please specify the script file manually."
+            exit 1
+            ;;
+    esac
+    
+    echo -e "${GREEN}Auto-detected: $SCRIPT_FILE${NC}"
+fi
+
+# Validate script file exists
+if [ ! -f "$SCRIPT_FILE" ]; then
+    echo -e "${RED}Error: Script file '$SCRIPT_FILE' not found${NC}"
+    if [[ "$SCRIPT_FILE" == scripts/benchmarks/* ]]; then
+        echo "Available benchmark files:"
+        ls scripts/benchmarks/ 2>/dev/null || echo "  (benchmarks directory not found)"
+    fi
     exit 1
 fi
 
@@ -145,16 +182,27 @@ if [[ ! " rss pss uss all " =~ " $METHOD " ]]; then
     exit 1
 fi
 
-# Check if script file exists
-if [ ! -f "$SCRIPT_FILE" ]; then
-    echo -e "${RED}Error: Script file '$SCRIPT_FILE' not found${NC}"
-    exit 1
-fi
 
 # Check if Docker is available
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}Error: Docker is not installed or not in PATH${NC}"
     exit 1
+fi
+
+# Change to project root if script file is relative to project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# If script file starts with scripts/benchmarks/, we need to be in project root
+if [[ "$SCRIPT_FILE" == scripts/benchmarks/* ]]; then
+    cd "$PROJECT_ROOT"
+    # Verify the benchmark file exists from project root
+    if [ ! -f "$SCRIPT_FILE" ]; then
+        echo -e "${RED}Error: Benchmark file '$SCRIPT_FILE' not found from project root${NC}"
+        echo "Available benchmark files:"
+        ls scripts/benchmarks/ 2>/dev/null || echo "  (benchmarks directory not found)"
+        exit 1
+    fi
 fi
 
 # Determine image name
@@ -208,16 +256,74 @@ ensure_image() {
     fi
 }
 
+# Function to determine container file path and command based on language
+get_container_mapping() {
+    local language="$1"
+    local script_file="$2"
+    local basename_file=$(basename "$script_file")
+    
+    # Map local file to expected container path and determine execution method
+    case $language in
+        python)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND="" # Uses default container CMD
+            ;;
+        go)
+            CONTAINER_PATH="/workspace/$basename_file"  
+            EXEC_COMMAND=""
+            ;;
+        node)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        c)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        cpp)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        jdk)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        jre)
+            # JRE expects .class files, but we might have .java - let container handle it
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        rust)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        dotnet-sdk)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        dotnet-runtime)
+            CONTAINER_PATH="/workspace/$basename_file"
+            EXEC_COMMAND=""
+            ;;
+        *)
+            echo "Unknown language: $language" >&2
+            return 1
+            ;;
+    esac
+}
+
 # Function to run RSS measurement
 measure_rss() {
     local output_var="$1"
     [ "$VERBOSE" = true ] && echo "Running RSS measurement via GNU time..."
     
+    # Get container path mapping
+    get_container_mapping "$LANGUAGE" "$SCRIPT_FILE"
+    
     local result=$(docker run --rm \
-        -v "$(pwd)/$SCRIPT_FILE:/app/$(basename "$SCRIPT_FILE")" \
+        -v "$(pwd)/$SCRIPT_FILE:$CONTAINER_PATH" \
         --memory=512m --cpus=1.0 \
-        "$IMAGE_NAME" \
-        /usr/bin/time -v $LANGUAGE $(basename "$SCRIPT_FILE") 2>&1)
+        "$IMAGE_NAME" 2>&1)
     
     eval "$output_var='$result'"
 }
@@ -227,13 +333,30 @@ measure_pss_uss() {
     local output_var="$1"
     [ "$VERBOSE" = true ] && echo "Running PSS/USS measurement via smem2 and /proc..."
     
+    # Get container path mapping
+    get_container_mapping "$LANGUAGE" "$SCRIPT_FILE"
+    local basename_file=$(basename "$SCRIPT_FILE")
+    
     local result=$(docker run --rm \
-        -v "$(pwd)/$SCRIPT_FILE:/app/$(basename "$SCRIPT_FILE")" \
+        -v "$(pwd)/$SCRIPT_FILE:$CONTAINER_PATH" \
         --memory=512m --cpus=1.0 \
         "$IMAGE_NAME" \
         sh -c "
-            # Start the program in background
-            $LANGUAGE $(basename "$SCRIPT_FILE") >/dev/null 2>&1 &
+            # Start the program in background by leveraging container's default execution
+            # Use the same execution path as the container would normally use
+            case \"$LANGUAGE\" in
+                python) python3 /workspace/$basename_file >/dev/null 2>&1 & ;;
+                go) go run /workspace/$basename_file >/dev/null 2>&1 & ;;
+                node) node /workspace/$basename_file >/dev/null 2>&1 & ;;
+                c) gcc /workspace/$basename_file -o /workspace/program && /workspace/program >/dev/null 2>&1 & ;;
+                cpp) g++ /workspace/$basename_file -o /workspace/program && /workspace/program >/dev/null 2>&1 & ;;
+                jdk) javac /workspace/$basename_file && java -cp /workspace \$(basename \"$basename_file\" .java) >/dev/null 2>&1 & ;;
+                jre) java -cp /workspace \$(basename \"$basename_file\" .class) >/dev/null 2>&1 & ;;
+                rust) rustc /workspace/$basename_file && ./\$(basename \"$basename_file\" .rs) >/dev/null 2>&1 & ;;
+                dotnet-sdk) cd /workspace && dotnet new console -n test --force && cp $basename_file test/Program.cs && cd test && dotnet run >/dev/null 2>&1 & ;;
+                dotnet-runtime) dotnet /workspace/$basename_file >/dev/null 2>&1 & ;;
+                *) echo 'Unknown language for PSS/USS measurement' >&2; exit 1 ;;
+            esac
             PID=\$!
             
             # Wait a moment for startup
@@ -286,7 +409,11 @@ echo ""
 # Ensure image is available
 ensure_image
 
+# Get container path mapping and show it
+get_container_mapping "$LANGUAGE" "$SCRIPT_FILE"
+
 echo "Using image: $IMAGE_NAME"
+[ "$VERBOSE" = true ] && echo "Container path mapping: $(pwd)/$SCRIPT_FILE → $CONTAINER_PATH"
 echo ""
 
 # Execute based on mode

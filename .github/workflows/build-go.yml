@@ -6,7 +6,6 @@ on:
     paths:
       - 'images/Dockerfile.go'
       - 'images/Dockerfile.base'
-      - 'examples/benchmark.go'
       - '.github/workflows/build-go.yml'
       - '.github/workflows/shared-build.yml'
   pull_request:
@@ -14,7 +13,6 @@ on:
     paths:
       - 'images/Dockerfile.go'
       - 'images/Dockerfile.base'
-      - 'examples/benchmark.go'
       - '.github/workflows/build-go.yml'
       - '.github/workflows/shared-build.yml'
   workflow_dispatch:

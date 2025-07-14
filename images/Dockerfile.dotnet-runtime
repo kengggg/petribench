@@ -1,4 +1,4 @@
-FROM ghcr.io/kengggg/petribench-base:latest
+FROM petribench-base:latest
 
 # Switch to root to install packages
 USER root
@@ -37,4 +37,4 @@ LABEL dotnet.version="8.0"
 LABEL dotnet.type="runtime"
 
 # Default command: Show available tools and runtime info
-CMD ["/bin/sh", "-c", "if [ -f /workspace/Program.dll ]; then /usr/bin/time -v dotnet /workspace/Program.dll; else echo 'PetriBench .NET Runtime'; echo 'Available tools:'; echo '  - dotnet ($(dotnet --version))'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - smem2 (PSS/USS measurement)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo ''; echo 'Usage examples:'; echo '  docker run -v Program.dll:/workspace/Program.dll petribench-dotnet-runtime dotnet Program.dll'; echo '  docker run -v Program.dll:/workspace/Program.dll petribench-dotnet-runtime /usr/bin/time -v dotnet Program.dll'; fi"]
+CMD ["/bin/sh", "-c", "if [ -f /workspace/Benchmark.dll ]; then /usr/bin/time -v dotnet /workspace/Benchmark.dll; elif [ -f /workspace/Program.dll ]; then /usr/bin/time -v dotnet /workspace/Program.dll; else echo 'PetriBench .NET Runtime'; echo 'Available tools:'; echo '  - dotnet ($(dotnet --version))'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - smem2 (PSS/USS measurement)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo ''; echo 'Usage examples:'; echo '  docker run -v Benchmark.dll:/workspace/Benchmark.dll petribench-dotnet-runtime'; echo '  docker run -v Program.dll:/workspace/Program.dll petribench-dotnet-runtime dotnet Program.dll'; echo '  docker run -v Program.dll:/workspace/Program.dll petribench-dotnet-runtime /usr/bin/time -v dotnet Program.dll'; fi"]

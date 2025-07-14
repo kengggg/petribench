@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [python, go, node, c, cpp, java-jdk, java-jre, rust, dotnet-sdk, dotnet-runtime]
+        language: [python, go, node, c, cpp, jdk, jre, rust, dotnet-sdk, dotnet-runtime]
         include:
           - language: python
             dockerfile: Dockerfile.python
@@ -77,8 +77,8 @@ jobs:
                   return 0; 
               }
             test_extension: 'cpp'
-          - language: java-jdk
-            dockerfile: Dockerfile.java-jdk
+          - language: jdk
+            dockerfile: Dockerfile.jdk
             size_target: '<380MB'
             test_command: 'sh -c "javac Test.java && java Test"'
             test_content: |
@@ -88,8 +88,8 @@ jobs:
                   } 
               }
             test_extension: 'java'
-          - language: java-jre
-            dockerfile: Dockerfile.java-jre
+          - language: jre
+            dockerfile: Dockerfile.jre
             size_target: '<220MB'
             test_command: 'echo "JRE runtime only - requires pre-compiled .class files"'
             test_content: ''
@@ -150,8 +150,8 @@ jobs:
             echo "| petribench-node | ✅ Success | <100MB |" >> $GITHUB_STEP_SUMMARY
             echo "| petribench-c | ✅ Success | <250MB |" >> $GITHUB_STEP_SUMMARY
             echo "| petribench-cpp | ✅ Success | <250MB |" >> $GITHUB_STEP_SUMMARY
-            echo "| petribench-java-jdk | ✅ Success | <380MB |" >> $GITHUB_STEP_SUMMARY
-            echo "| petribench-java-jre | ✅ Success | <220MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-jdk | ✅ Success | <380MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| petribench-jre | ✅ Success | <220MB |" >> $GITHUB_STEP_SUMMARY
             echo "| petribench-rust | ✅ Success | <250MB |" >> $GITHUB_STEP_SUMMARY
             echo "| petribench-dotnet-sdk | ✅ Success | <450MB |" >> $GITHUB_STEP_SUMMARY
             echo "| petribench-dotnet-runtime | ✅ Success | <180MB |" >> $GITHUB_STEP_SUMMARY

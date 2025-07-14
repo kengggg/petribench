@@ -22,8 +22,16 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Change to project root
-cd "$(dirname "$0")/.."
+# Change to project root (script can be run from anywhere)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
+# Verify we're in the right location
+if [ ! -d "./images" ]; then
+    echo -e "${RED}Error: Cannot find images/ directory. Are you in the PetriBench project root?${NC}"
+    exit 1
+fi
 
 # Build base image first
 echo -e "${YELLOW}Step 1/2: Building base image...${NC}"
@@ -38,7 +46,7 @@ echo ""
 
 # Build all language images that depend on base
 echo -e "${YELLOW}Step 2/2: Building all dependent language images...${NC}"
-LANGUAGES=("python" "go" "node" "c" "cpp" "java-jdk" "java-jre" "rust" "dotnet-sdk" "dotnet-runtime")
+LANGUAGES=("python" "go" "node" "c" "cpp" "jdk" "jre" "rust" "dotnet-sdk" "dotnet-runtime")
 
 FAILED_IMAGES=()
 SUCCESSFUL_IMAGES=()
@@ -81,7 +89,7 @@ if [ ${#FAILED_IMAGES[@]} -eq 0 ]; then
     echo -e "${GREEN}=== All images built successfully! ===${NC}"
     echo ""
     echo "Next steps:"
-    echo "  - Test functionality: ./scripts/measure-memory.sh --mode test python examples/benchmark.py"
+    echo "  - Test functionality: ./scripts/measure-memory.sh --mode test python scripts/benchmarks/benchmark.py"
     echo "  - Build individual images: ./scripts/build-individual.sh [language]"
     echo "  - Available languages: ${LANGUAGES[*]}"
     exit 0

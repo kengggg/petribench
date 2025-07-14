@@ -1,4 +1,4 @@
-FROM ghcr.io/kengggg/petribench-base:latest
+FROM petribench-base:latest
 
 # Switch to root to install packages
 USER root

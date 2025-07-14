@@ -16,8 +16,8 @@ docker pull ghcr.io/kengggg/petribench-go:latest
 docker pull ghcr.io/kengggg/petribench-node:latest
 docker pull ghcr.io/kengggg/petribench-c:latest
 docker pull ghcr.io/kengggg/petribench-cpp:latest
-docker pull ghcr.io/kengggg/petribench-java-jdk:latest
-docker pull ghcr.io/kengggg/petribench-java-jre:latest
+docker pull ghcr.io/kengggg/petribench-jdk:latest
+docker pull ghcr.io/kengggg/petribench-jre:latest
 docker pull ghcr.io/kengggg/petribench-rust:latest
 docker pull ghcr.io/kengggg/petribench-dotnet-sdk:latest
 docker pull ghcr.io/kengggg/petribench-dotnet-runtime:latest
@@ -155,8 +155,8 @@ docker run --rm \
 | `petribench-node` | <100MB | Node.js 20 LTS | petribench-base + nodejs |
 | `petribench-c` | <250MB | C GCC 13 | petribench-base + gcc |
 | `petribench-cpp` | <250MB | C++ G++ 13 | petribench-base + g++ |
-| `petribench-java-jdk` | <380MB | OpenJDK 17 JDK | petribench-base + openjdk-jdk |
-| `petribench-java-jre` | <220MB | OpenJDK 17 JRE | petribench-base + openjdk-jre |
+| `petribench-jdk` | <380MB | OpenJDK 17 JDK | petribench-base + openjdk-jdk |
+| `petribench-jre` | <220MB | OpenJDK 17 JRE | petribench-base + openjdk-jre |
 | `petribench-rust` | <250MB | Rust 1.71+ | petribench-base + rustc |
 | `petribench-dotnet-sdk` | <450MB | .NET 8 SDK | petribench-base + dotnet-sdk |
 | `petribench-dotnet-runtime` | <180MB | .NET 8 Runtime | petribench-base + dotnet-runtime |
@@ -177,7 +177,7 @@ docker build -f ./images/Dockerfile.python -t petribench-python ./images/
 
 ```bash
 # Test memory measurement compatibility
-./scripts/measure-memory.sh --mode test python examples/benchmark.py
+./scripts/measure-memory.sh --mode test python scripts/benchmarks/benchmark.py
 
 # Test image sizes and functionality
 docker images | grep petribench
@@ -187,14 +187,14 @@ docker images | grep petribench
 
 ```bash
 # Memory measurement demo (RSS, PSS, USS)
-./scripts/measure-memory.sh python examples/benchmark.py
+./scripts/measure-memory.sh python scripts/benchmarks/benchmark.py
 
 # Specific measurement methods
-./scripts/measure-memory.sh --method rss python examples/benchmark.py
-./scripts/measure-memory.sh --method pss python examples/benchmark.py
+./scripts/measure-memory.sh --method rss python scripts/benchmarks/benchmark.py
+./scripts/measure-memory.sh --method pss python scripts/benchmarks/benchmark.py
 
 # Benchmark mode with statistical analysis
-./scripts/measure-memory.sh --mode benchmark python examples/benchmark.py
+./scripts/measure-memory.sh --mode benchmark python scripts/benchmarks/benchmark.py
 ```
 
 ## Architecture
@@ -220,7 +220,7 @@ docker images | grep petribench
 
 1. **Add New Language**: Create `images/Dockerfile.{language}` extending `petribench-base`
 2. **Update CI**: Add language to matrix in `.github/workflows/build-and-publish.yml`
-3. **Add Examples**: Create `examples/benchmark.{ext}` for the language
+3. **Add Benchmarks**: Create `scripts/benchmarks/benchmark.{ext}` for the language
 4. **Test**: Update `scripts/build-all.sh` with test cases
 5. **Document**: Update README with usage examples and image specifications
 

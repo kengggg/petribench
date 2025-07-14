@@ -1,0 +1,26 @@
+FROM petribench-base:latest
+
+# Switch to root to install packages
+USER root
+
+# Install OpenJDK 17 JDK (includes JRE and javac for compilation)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        openjdk-17-jdk-headless \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Switch back to non-root user
+USER tester
+
+# Set working directory for volume mounts
+WORKDIR /workspace
+
+# Add Java-specific labels
+LABEL org.opencontainers.image.description="Ultra-minimal Java JDK for memory benchmarking with RSS/PSS/USS measurement"
+LABEL java.version="17"
+LABEL java.type="jdk"
+
+# Default command: Show available tools and runtime info
+CMD ["/bin/sh", "-c", "if [ -f /workspace/Benchmark.class ]; then /usr/bin/time -v java -cp /workspace Benchmark; elif [ -f /workspace/Benchmark.java ]; then /usr/bin/time -v sh -c \"javac /workspace/Benchmark.java && java -cp /workspace Benchmark\"; elif [ -f /workspace/Program.class ]; then /usr/bin/time -v java -cp /workspace Program; else echo 'PetriBench Java JDK'; echo 'Available tools:'; echo '  - java ($(java -version 2>&1 | head -1))'; echo '  - javac ($(javac -version 2>&1))'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - smem2 (PSS/USS measurement)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo ''; echo 'Usage examples:'; echo '  docker run -v Benchmark.java:/workspace/Benchmark.java petribench-jdk'; echo '  docker run -v Program.class:/workspace/Program.class petribench-jdk java Program'; echo '  docker run -v program.jar:/workspace/program.jar petribench-jdk java -jar program.jar'; fi"]

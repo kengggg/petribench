@@ -6,7 +6,6 @@ on:
     paths:
       - 'images/Dockerfile.cpp'
       - 'images/Dockerfile.base'
-      - 'examples/benchmark.cpp'
       - '.github/workflows/build-cpp.yml'
       - '.github/workflows/shared-build.yml'
   pull_request:
@@ -14,7 +13,6 @@ on:
     paths:
       - 'images/Dockerfile.cpp'
       - 'images/Dockerfile.base'
-      - 'examples/benchmark.cpp'
       - '.github/workflows/build-cpp.yml'
       - '.github/workflows/shared-build.yml'
   workflow_dispatch:

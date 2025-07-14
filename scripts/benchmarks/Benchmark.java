@@ -3,20 +3,9 @@ import java.util.*;
 /**
  * Simple benchmark script for memory measurement in Java
  * Performs basic computational tasks to generate measurable memory usage
+ * Single class - no inner classes for simplicity
  */
 public class Benchmark {
-    
-    static class DataEntry {
-        int id;
-        String value;
-        List<Integer> data;
-        
-        DataEntry(int id, String value, List<Integer> data) {
-            this.id = id;
-            this.value = value;
-            this.data = data;
-        }
-    }
     
     // Generate fibonacci sequence up to n
     public static List<Long> fibonacci(int n) {
@@ -59,16 +48,20 @@ public class Benchmark {
     
     // Allocate data structures to generate memory usage
     public static int memoryAllocator() {
-        // Create list of objects to use memory
-        List<DataEntry> data = new ArrayList<>();
+        // Create simple string data to use memory
+        List<String> data = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            List<Integer> entryData = new ArrayList<>();
+            data.add("Entry" + i + ":" + (i * 42));
+        }
+        
+        // Create nested lists for memory usage
+        List<List<Integer>> nestedData = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            List<Integer> subList = new ArrayList<>();
             for (int j = 0; j < 10; j++) {
-                entryData.add(j);
+                subList.add(i * j);
             }
-            
-            DataEntry entry = new DataEntry(i, String.valueOf(i * 42), entryData);
-            data.add(entry);
+            nestedData.add(subList);
         }
         
         // Generate fibonacci numbers
@@ -79,11 +72,12 @@ public class Benchmark {
         
         // Print some results
         System.out.println("Generated " + data.size() + " data entries");
+        System.out.println("Created " + nestedData.size() + " nested data structures");
         System.out.println("Fibonacci(50): " + fib.size() + " numbers, last value: " + fib.get(fib.size() - 1));
         System.out.println("Primes up to 1000: " + primes.size() + " found");
         System.out.println("Largest prime: " + primes.get(primes.size() - 1));
         
-        return data.size() + fib.size() + primes.size();
+        return data.size() + nestedData.size() + fib.size() + primes.size();
     }
     
     public static void main(String[] args) {

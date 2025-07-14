@@ -127,7 +127,7 @@ CMD ["python3", "-m", "timeit", "-s", "pass"]
 7  API / CLI Sketch
 
 # One-off run
-petri bench python examples/benchmark.py --runs 50 --output bench.json
+petri bench python scripts/benchmarks/benchmark.py --runs 50 --output bench.json
 
 # Generate Slack-ready table
 petri report bench.json --format slack

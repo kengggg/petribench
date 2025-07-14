@@ -19,6 +19,17 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# Change to project root (script can be run from anywhere)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
+# Verify we're in the right location
+if [ ! -d "./images" ]; then
+    echo -e "${RED}Error: Cannot find images/ directory. Are you in the PetriBench project root?${NC}"
+    exit 1
+fi
+
 # Build base image first
 echo -e "${YELLOW}Building base image...${NC}"
 if docker build -f ./images/Dockerfile.base -t petribench-base ./images/; then
@@ -31,7 +42,7 @@ fi
 echo ""
 
 # Build all language images (aligned with current Dockerfiles)
-LANGUAGES=("python" "go" "node" "c" "cpp" "java-jdk" "java-jre" "rust" "dotnet-sdk" "dotnet-runtime")
+LANGUAGES=("python" "go" "node" "c" "cpp" "jdk" "jre" "rust" "dotnet-sdk" "dotnet-runtime")
 
 for LANG in "${LANGUAGES[@]}"; do
     echo -e "${YELLOW}Building $LANG image...${NC}"
@@ -62,86 +73,89 @@ else
     echo -e "${RED}✗ GNU time not working${NC}"
 fi
 
-# Test language images with simple scripts
-echo 'print("Test")' > /tmp/test.py
-echo 'package main; import "fmt"; func main() { fmt.Println("Test") }' > /tmp/test.go
-echo 'console.log("Test")' > /tmp/test.js
-echo '#include <stdio.h>; int main() { printf("Test\\n"); return 0; }' > /tmp/test.c
-echo '#include <iostream>; int main() { std::cout << "Test" << std::endl; return 0; }' > /tmp/test.cpp
-echo 'fn main() { println!("Test"); }' > /tmp/test.rs
-echo 'public class Test { public static void main(String[] args) { System.out.println("Test"); } }' > /tmp/Test.java
+# Use actual benchmark files from scripts/benchmarks/ directory
+
+# Pre-compiled files used directly from scripts/benchmarks/ - no copying needed
 
 # Test each language
 for LANG in "${LANGUAGES[@]}"; do
     echo -n "$LANG image: "
     case $LANG in
         python)
-            if docker run --rm -v /tmp/test.py:/workspace/test.py petribench-python python3 test.py >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/benchmark.py:/workspace/benchmark.py petribench-python >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ Python execution working${NC}"
             else
                 echo -e "${RED}✗ Python execution failed${NC}"
             fi
             ;;
         go)
-            if docker run --rm -v /tmp/test.go:/workspace/test.go petribench-go go run test.go >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/benchmark.go:/workspace/benchmark.go petribench-go >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ Go execution working${NC}"
             else
                 echo -e "${RED}✗ Go execution failed${NC}"
             fi
             ;;
         node)
-            if docker run --rm -v /tmp/test.js:/workspace/test.js petribench-node node test.js >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/benchmark.js:/workspace/benchmark.js petribench-node >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ Node.js execution working${NC}"
             else
                 echo -e "${RED}✗ Node.js execution failed${NC}"
             fi
             ;;
         c)
-            if docker run --rm -v /tmp/test.c:/workspace/test.c petribench-c sh -c "gcc test.c -o test && ./test" >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/benchmark.c:/workspace/benchmark.c petribench-c >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ C compilation and execution working${NC}"
             else
                 echo -e "${RED}✗ C compilation/execution failed${NC}"
             fi
             ;;
         cpp)
-            if docker run --rm -v /tmp/test.cpp:/workspace/test.cpp petribench-cpp sh -c "g++ test.cpp -o test && ./test" >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/benchmark.cpp:/workspace/benchmark.cpp petribench-cpp >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ C++ compilation and execution working${NC}"
             else
                 echo -e "${RED}✗ C++ compilation/execution failed${NC}"
             fi
             ;;
-        java-jdk)
-            if docker run --rm -v /tmp/Test.java:/workspace/Test.java petribench-java-jdk sh -c "javac Test.java && java Test" >/dev/null 2>&1; then
+        jdk)
+            if docker run --rm -v ./scripts/benchmarks/Benchmark.java:/workspace/Benchmark.java petribench-jdk >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ Java JDK compilation and execution working${NC}"
             else
                 echo -e "${RED}✗ Java JDK compilation/execution failed${NC}"
             fi
             ;;
-        java-jre)
-            echo -e "${YELLOW}⚠ Java JRE runtime only (requires pre-compiled .class files)${NC}"
+        jre)
+            if docker run --rm -v ./scripts/benchmarks/Benchmark.class:/workspace/Benchmark.class petribench-jre >/dev/null 2>&1; then
+                echo -e "${GREEN}✓ Java JRE execution working${NC}"
+            else
+                echo -e "${RED}✗ Java JRE execution failed${NC}"
+            fi
             ;;
         rust)
-            if docker run --rm -v /tmp/test.rs:/workspace/test.rs petribench-rust sh -c "rustc test.rs && ./test" >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/benchmark.rs:/workspace/benchmark.rs petribench-rust >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ Rust compilation and execution working${NC}"
             else
                 echo -e "${RED}✗ Rust compilation/execution failed${NC}"
             fi
             ;;
         dotnet-sdk)
-            if docker run --rm petribench-dotnet-sdk dotnet --version >/dev/null 2>&1; then
+            if docker run --rm -v ./scripts/benchmarks/Benchmark.cs:/workspace/Benchmark.cs petribench-dotnet-sdk >/dev/null 2>&1; then
                 echo -e "${GREEN}✓ .NET SDK working${NC}"
             else
                 echo -e "${RED}✗ .NET SDK failed${NC}"
             fi
             ;;
         dotnet-runtime)
-            echo -e "${YELLOW}⚠ .NET runtime only (requires pre-compiled .dll files)${NC}"
+            if docker run --rm -v ./scripts/benchmarks/Benchmark.dll:/workspace/Benchmark.dll -v ./scripts/benchmarks/Benchmark.runtimeconfig.json:/workspace/Benchmark.runtimeconfig.json petribench-dotnet-runtime >/dev/null 2>&1; then
+                echo -e "${GREEN}✓ .NET Runtime working${NC}"
+            else
+                echo -e "${RED}✗ .NET Runtime failed${NC}"
+            fi
             ;;
     esac
 done
 
 # Cleanup test files
-rm -f /tmp/test.* /tmp/Test.*
+# Cleanup no longer needed - using actual benchmark files
 
 # Size monitoring (issue #1 requirement)
 echo ""
@@ -171,14 +185,14 @@ echo "  petribench-go              - Go 1.21+ compiler"
 echo "  petribench-node            - Node.js 20 LTS runtime"
 echo "  petribench-c               - GCC 13 C compiler"
 echo "  petribench-cpp             - G++ 13 C++ compiler"
-echo "  petribench-java-jdk        - OpenJDK 21 JDK (development)"
-echo "  petribench-java-jre        - OpenJDK 21 JRE (runtime)"
+echo "  petribench-jdk             - OpenJDK 21 JDK (development)"
+echo "  petribench-jre             - OpenJDK 21 JRE (runtime)"
 echo "  petribench-rust            - Rust 1.71+ compiler"
 echo "  petribench-dotnet-sdk      - .NET 8 SDK (development)"
 echo "  petribench-dotnet-runtime  - .NET 8 Runtime"
 echo ""
 echo "Next steps:"
-echo "  1. Test memory measurement: ./scripts/measure-memory.sh --mode test python examples/benchmark.py"
+echo "  1. Test memory measurement: ./scripts/measure-memory.sh --mode test python scripts/benchmarks/benchmark.py"
 echo "  2. Build individual images: ./scripts/build-individual.sh [language]"
 echo "  3. Build base + all: ./scripts/build-base.sh"
 echo "  4. Publish to GHCR: gh workflow run build-all.yml"

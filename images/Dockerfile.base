@@ -20,6 +20,9 @@ RUN mkdir -p /workspace /measurements
 # Create non-root user for security
 RUN groupadd -g 1000 tester && useradd -m -u 1000 -g 1000 tester
 
+# Change ownership of workspace to tester user
+RUN chown -R tester:tester /workspace /measurements
+
 # Set working directory for volume mounts
 WORKDIR /workspace
 

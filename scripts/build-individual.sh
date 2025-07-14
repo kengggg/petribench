@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Available languages (must match actual Dockerfiles)
-AVAILABLE_LANGUAGES=("python" "go" "node" "c" "cpp" "java-jdk" "java-jre" "rust" "dotnet-sdk" "dotnet-runtime")
+AVAILABLE_LANGUAGES=("python" "go" "node" "c" "cpp" "jdk" "jre" "rust" "dotnet-sdk" "dotnet-runtime")
 
 # Function to show usage
 show_usage() {
@@ -58,8 +58,16 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Change to project root
-cd "$(dirname "$0")/.."
+# Change to project root (script can be run from anywhere)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
+# Verify we're in the right location
+if [ ! -d "./images" ]; then
+    echo -e "${RED}Error: Cannot find images/ directory. Are you in the PetriBench project root?${NC}"
+    exit 1
+fi
 
 # Check if Dockerfile exists
 DOCKERFILE_PATH="./images/Dockerfile.$LANGUAGE"
@@ -139,14 +147,14 @@ case $LANGUAGE in
             echo -e "${RED}✗ G++ compiler test failed${NC}"
         fi
         ;;
-    java-jdk)
+    jdk)
         if docker run --rm "$IMAGE_NAME" javac -version >/dev/null 2>&1; then
             echo -e "${GREEN}✓ Java JDK test passed${NC}"
         else
             echo -e "${RED}✗ Java JDK test failed${NC}"
         fi
         ;;
-    java-jre)
+    jre)
         if docker run --rm "$IMAGE_NAME" java -version >/dev/null 2>&1; then
             echo -e "${GREEN}✓ Java JRE test passed${NC}"
         else
@@ -182,6 +190,6 @@ echo ""
 echo "Image available: $IMAGE_NAME"
 echo ""
 echo "Next steps:"
-echo "  - Test memory measurement: ./scripts/measure-memory.sh --mode test $LANGUAGE examples/benchmark.*"
+echo "  - Test memory measurement: ./scripts/measure-memory.sh --mode test $LANGUAGE scripts/benchmarks/benchmark.*"
 echo "  - Build all images: ./scripts/build-all.sh"
 echo "  - Build base + all: ./scripts/build-base.sh"
