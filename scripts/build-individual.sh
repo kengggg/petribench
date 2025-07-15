@@ -120,10 +120,10 @@ case $LANGUAGE in
         fi
         ;;
     go)
-        if docker run --rm "$IMAGE_NAME" go version >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ Go compiler test passed${NC}"
+        if docker run --rm "$IMAGE_NAME" /usr/local/bin/program >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ Go compiled binary test passed${NC}"
         else
-            echo -e "${RED}✗ Go compiler test failed${NC}"
+            echo -e "${RED}✗ Go compiled binary test failed${NC}"
         fi
         ;;
     node)
