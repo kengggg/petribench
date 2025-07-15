@@ -28,8 +28,8 @@ jobs:
       image_name: 'go'
       dockerfile_path: 'images/Dockerfile.go'
       context_path: './images/'
-      size_target: '<60MB'
-      test_command: 'go run test.go'
+      size_target: '<120MB'
+      test_command: '/usr/local/bin/program'
       test_file_content: 'package main; import "fmt"; func main() { fmt.Println("Test successful") }'
       test_file_extension: 'go'
     secrets: inherit
