@@ -14,7 +14,7 @@ RUN apt-get update && \
     chown -R tester:tester /workspace /measurements
 
 # Copy and install smem2 replacement script as measure_memory
-COPY ../scripts/smem2_replacement.sh /usr/local/bin/measure_memory
+COPY scripts/smem2_replacement.sh /usr/local/bin/measure_memory
 RUN chmod +x /usr/local/bin/measure_memory && \
     chown tester:tester /usr/local/bin/measure_memory
 
