@@ -134,17 +134,17 @@ case $LANGUAGE in
         fi
         ;;
     c)
-        if docker run --rm "$IMAGE_NAME" gcc --version >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ GCC compiler test passed${NC}"
+        if docker run --rm "$IMAGE_NAME" /usr/local/bin/program >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ C binary execution test passed${NC}"
         else
-            echo -e "${RED}✗ GCC compiler test failed${NC}"
+            echo -e "${RED}✗ C binary execution test failed${NC}"
         fi
         ;;
     cpp)
-        if docker run --rm "$IMAGE_NAME" g++ --version >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ G++ compiler test passed${NC}"
+        if docker run --rm "$IMAGE_NAME" /usr/local/bin/program >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ C++ binary execution test passed${NC}"
         else
-            echo -e "${RED}✗ G++ compiler test failed${NC}"
+            echo -e "${RED}✗ C++ binary execution test failed${NC}"
         fi
         ;;
     jdk)

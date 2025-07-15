@@ -28,8 +28,8 @@ jobs:
       image_name: 'c'
       dockerfile_path: 'images/Dockerfile.c'
       context_path: './images/'
-      size_target: '<250MB'
-      test_command: 'sh -c "gcc test.c -o test && ./test"'
+      size_target: '<110MB'
+      test_command: '/usr/local/bin/program'
       test_file_content: |
         #include <stdio.h>
         int main() { 
