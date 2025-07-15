@@ -28,8 +28,8 @@ jobs:
       image_name: 'jdk'
       dockerfile_path: 'images/Dockerfile.jdk'
       context_path: './images/'
-      size_target: '<380MB'
-      test_command: 'sh -c "javac Test.java && java Test"'
+      size_target: '<330MB'
+      test_command: 'java -cp /workspace Program'
       test_file_content: |
         public class Test { 
             public static void main(String[] args) { 

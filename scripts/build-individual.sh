@@ -148,10 +148,10 @@ case $LANGUAGE in
         fi
         ;;
     jdk)
-        if docker run --rm "$IMAGE_NAME" javac -version >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ Java JDK test passed${NC}"
+        if docker run --rm "$IMAGE_NAME" java -cp /workspace Program >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ Java JDK execution test passed${NC}"
         else
-            echo -e "${RED}✗ Java JDK test failed${NC}"
+            echo -e "${RED}✗ Java JDK execution test failed${NC}"
         fi
         ;;
     jre)

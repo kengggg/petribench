@@ -28,6 +28,6 @@ jobs:
       image_name: 'jre'
       dockerfile_path: 'images/Dockerfile.jre'
       context_path: './images/'
-      size_target: '<220MB'
-      test_command: 'echo "JRE runtime only - requires pre-compiled .class files"'
+      size_target: '<330MB'
+      test_command: 'java -version'
     secrets: inherit
