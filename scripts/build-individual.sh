@@ -169,14 +169,14 @@ case $LANGUAGE in
         fi
         ;;
     dotnet-sdk)
-        if docker run --rm "$IMAGE_NAME" dotnet --version >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ .NET SDK test passed${NC}"
+        if docker run --rm "$IMAGE_NAME" dotnet /workspace/Program.dll >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ .NET SDK execution test passed${NC}"
         else
-            echo -e "${RED}✗ .NET SDK test failed${NC}"
+            echo -e "${RED}✗ .NET SDK execution test failed${NC}"
         fi
         ;;
     dotnet-runtime)
-        if docker run --rm "$IMAGE_NAME" dotnet --version >/dev/null 2>&1; then
+        if docker run --rm "$IMAGE_NAME" dotnet --info >/dev/null 2>&1; then
             echo -e "${GREEN}✓ .NET Runtime test passed${NC}"
         else
             echo -e "${RED}✗ .NET Runtime test failed${NC}"

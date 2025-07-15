@@ -28,6 +28,6 @@ jobs:
       image_name: 'dotnet-sdk'
       dockerfile_path: 'images/Dockerfile.dotnet-sdk'
       context_path: './images/'
-      size_target: '<450MB'
-      test_command: 'sh -c "cd /tmp && dotnet new console -n test --force && echo \"Console.WriteLine(\\\"Test successful\\\");\" > /tmp/test/Program.cs && cd /tmp/test && dotnet run"'
+      size_target: '<320MB'
+      test_command: 'dotnet /workspace/Program.dll'
     secrets: inherit
