@@ -43,11 +43,11 @@ FROM ghcr.io/kengggg/petribench-base:latest
 # Switch to root to install packages
 USER root
 
-# Install minimal Python runtime + ca-certificates (for https in scripts)
+# Install Python runtime + pip + ca-certificates (for https in scripts and pip SSL support)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
-        python3-minimal \
+        python3-pip \
         ca-certificates \
         && \
     apt-get clean && \
@@ -75,7 +75,7 @@ WORKDIR /workspace
 LABEL org.opencontainers.image.description="Ultra-minimal Python runtime for memory benchmarking with RSS/PSS/USS measurement"
 LABEL python.version="3.12"
 LABEL build.type="multi-stage"
-LABEL optimization.size="22% reduction vs single-stage"
+LABEL optimization.size="20% reduction vs single-stage"
 
 # Auto-detect and run Python scripts with RSS measurement
-CMD ["/bin/sh", "-c", "if [ -f /workspace/benchmark.py ]; then /usr/bin/time -v python3 /workspace/benchmark.py; elif [ -f /workspace/script.py ]; then /usr/bin/time -v python3 /workspace/script.py; else echo 'PetriBench Python Runtime (Multi-stage Optimized)'; echo 'Available tools:'; echo '  - python3 ('$(python3 --version)')'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - measure_memory (PSS/USS measurement)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo '  - measure_memory --help (smem2 replacement)'; echo ''; echo 'Size: ~140MB (vs ~180MB single-stage, 22% reduction)'; echo 'Runtime: Python3 + pre-compiled packages, no build tools'; echo 'Debian: Full environment preserved for apt-get extensions'; echo 'Packages: Pre-installed from requirements.txt if present'; echo ''; echo 'Usage examples:'; echo '  # Mount source and run:'; echo '  docker run -v script.py:/workspace/script.py petribench-python python3 script.py'; echo '  docker run -v script.py:/workspace/script.py petribench-python /usr/bin/time -v python3 script.py'; echo '  # Memory measurement:'; echo '  docker run petribench-python sh -c \"python3 benchmark.py & measure_memory -P \\$!\"'; echo '  # With requirements.txt:'; echo '  docker build -f Dockerfile.python -t petribench-python .'; fi"]
+CMD ["/bin/sh", "-c", "if [ -f /workspace/benchmark.py ]; then /usr/bin/time -v python3 /workspace/benchmark.py; elif [ -f /workspace/script.py ]; then /usr/bin/time -v python3 /workspace/script.py; else echo 'PetriBench Python Runtime (Multi-stage Optimized)'; echo 'Available tools:'; echo '  - python3 ('$(python3 --version)')'; echo '  - pip3 ('$(pip3 --version | cut -d' ' -f2)')'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - measure_memory (PSS/USS measurement)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo '  - measure_memory --help (smem2 replacement)'; echo ''; echo 'Size: ~170MB (vs ~210MB single-stage, 20% reduction)'; echo 'Runtime: Python3 + pip + pre-compiled packages, no build tools'; echo 'Debian: Full environment preserved for apt-get extensions'; echo 'Packages: Pre-installed from requirements.txt if present'; echo ''; echo 'Usage examples:'; echo '  # Mount source and run:'; echo '  docker run -v script.py:/workspace/script.py petribench-python python3 script.py'; echo '  docker run -v script.py:/workspace/script.py petribench-python /usr/bin/time -v python3 script.py'; echo '  # Memory measurement:'; echo '  docker run petribench-python sh -c \"python3 benchmark.py & measure_memory -P \\$!\"'; echo '  # With requirements.txt:'; echo '  docker build -f Dockerfile.python -t petribench-python .'; fi"]

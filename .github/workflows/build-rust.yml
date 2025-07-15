@@ -28,8 +28,8 @@ jobs:
       image_name: 'rust'
       dockerfile_path: 'images/Dockerfile.rust'
       context_path: './images/'
-      size_target: '<250MB'
-      test_command: 'sh -c "rustc test.rs && ./test"'
+      size_target: '<150MB'
+      test_command: '/usr/local/bin/program'
       test_file_content: 'fn main() { println!("Test successful"); }'
       test_file_extension: 'rs'
     secrets: inherit

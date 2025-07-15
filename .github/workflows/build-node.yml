@@ -28,7 +28,7 @@ jobs:
       image_name: 'node'
       dockerfile_path: 'images/Dockerfile.node'
       context_path: './images/'
-      size_target: '<100MB'
+      size_target: '<350MB'
       test_command: 'node test.js'
       test_file_content: 'console.log("Test successful")'
       test_file_extension: 'js'

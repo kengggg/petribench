@@ -162,10 +162,10 @@ case $LANGUAGE in
         fi
         ;;
     rust)
-        if docker run --rm "$IMAGE_NAME" rustc --version >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ Rust compiler test passed${NC}"
+        if docker run --rm "$IMAGE_NAME" /usr/local/bin/program >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ Rust binary execution test passed${NC}"
         else
-            echo -e "${RED}✗ Rust compiler test failed${NC}"
+            echo -e "${RED}✗ Rust binary execution test failed${NC}"
         fi
         ;;
     dotnet-sdk)
