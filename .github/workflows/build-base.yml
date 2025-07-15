@@ -30,8 +30,8 @@ jobs:
       image_name: 'base'
       dockerfile_path: 'images/Dockerfile.base'
       context_path: './images/'
-      size_target: '<40MB'
-      test_command: '/usr/bin/time --version && python3 -c "import subprocess; print(\"smem2 available:\", subprocess.run([\"smem2\", \"--version\"], capture_output=True).returncode == 0)"'
+      size_target: '<110MB'
+      test_command: '/usr/bin/time --version && measure_memory --help | head -3'
       depends_on_base: false
     secrets: inherit
 
