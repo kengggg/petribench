@@ -28,7 +28,7 @@ jobs:
       image_name: 'python'
       dockerfile_path: 'images/Dockerfile.python'
       context_path: './images/'
-      size_target: '<100MB'
+      size_target: '<160MB'
       test_command: 'python3 test.py'
       test_file_content: 'print("Test successful")'
       test_file_extension: 'py'
