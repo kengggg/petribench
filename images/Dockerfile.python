@@ -3,11 +3,12 @@ FROM ghcr.io/kengggg/petribench-base:latest
 # Switch to root to install packages
 USER root
 
-# Install Python 3.12 (minimal)
+# Install Python 3.12 + ca-certificates for pip SSL support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
         python3-minimal \
+        ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

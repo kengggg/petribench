@@ -3,10 +3,11 @@ FROM ghcr.io/kengggg/petribench-base:latest
 # Switch to root to install packages
 USER root
 
-# Install Go compiler and tools
+# Install Go compiler + ca-certificates for go mod SSL support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         golang-go \
+        ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

@@ -3,11 +3,12 @@ FROM ghcr.io/kengggg/petribench-base:latest
 # Switch to root to install packages
 USER root
 
-# Install Rust compiler and Cargo package manager
+# Install Rust compiler + ca-certificates for cargo SSL support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         rustc \
         cargo \
+        ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

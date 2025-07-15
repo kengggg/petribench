@@ -1,23 +1,22 @@
 FROM debian:bookworm-slim
 
-# Install minimal measurement tools for RSS, PSS, USS memory analysis
+# Install minimal tools, create dirs/user, and clean up in single optimized layer
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         time \
-        ca-certificates \
         && \
+    apt-get autoremove -y && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Add lightweight memory measurement script (replaces smem2)
-COPY scripts/measure_memory.sh /usr/local/bin/measure_memory
-RUN chmod +x /usr/local/bin/measure_memory
-
-# Create directories and user in single layer for efficiency
-RUN mkdir -p /workspace /measurements && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/* && \
+    mkdir -p /workspace /measurements && \
     groupadd -g 1000 tester && \
     useradd -m -u 1000 -g 1000 tester && \
     chown -R tester:tester /workspace /measurements
+
+# Copy and install smem2 replacement script as measure_memory
+COPY ../scripts/smem2_replacement.sh /usr/local/bin/measure_memory
+RUN chmod +x /usr/local/bin/measure_memory && \
+    chown tester:tester /usr/local/bin/measure_memory
 
 # Set working directory for volume mounts
 WORKDIR /workspace
@@ -31,4 +30,4 @@ LABEL org.opencontainers.image.description="Ultra-minimal base image for languag
 LABEL org.opencontainers.image.licenses=Apache-2.0
 
 # Default command shows available measurement tools and usage
-CMD ["/bin/sh", "-c", "echo 'PetriBench Base Image (Optimized)'; echo 'Available measurement tools:'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - measure_memory (PSS/USS measurement, replaces smem2)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo ''; echo 'Size: ~35MB (vs 169MB with Python dependencies)'; echo 'Usage: Extend this base image with your language runtime'"]
+CMD ["/bin/sh", "-c", "echo 'PetriBench Base Image (Ultra-Minimal)'; echo 'Available tools: time, measure_memory, /proc/smaps_rollup'; echo 'Size: 98.2MB (vs 169MB with Python, 42% reduction)'; echo 'Note: ca-certificates added per language as needed'; echo 'Usage: Extend with language runtime'"]
