@@ -115,6 +115,13 @@ COMPATIBILITY
     Full command-line compatibility with smem2 for seamless replacement.
     Uses same /proc/smaps_rollup data source as smem2 for identical accuracy.
 
+ACCESS REQUIREMENTS
+    This tool can only measure processes owned by the same user. Cross-user
+    measurement requires elevated privileges not provided for security reasons.
+    
+    In containers: All processes started by the container user are measurable.
+    Race conditions: Short-lived processes may exit before measurement completes.
+
 EXIT CODES
     0       Success
     1       Invalid arguments or options
@@ -136,8 +143,22 @@ validate_pid() {
         exit 2
     fi
     
+    if [ ! -f "/proc/$PID/smaps_rollup" ]; then
+        echo "Error: /proc/$PID/smaps_rollup not available (kernel too old or process exited)" >&2
+        exit 3
+    fi
+    
     if [ ! -r "/proc/$PID/smaps_rollup" ]; then
-        echo "Error: Cannot read /proc/$PID/smaps_rollup (permission denied or kernel too old)" >&2
+        # Get more detailed error information
+        local owner=$(ls -l "/proc/$PID/smaps_rollup" 2>/dev/null | awk '{print $3}')
+        local current_user=$(id -un)
+        
+        if [ -n "$owner" ] && [ "$owner" != "$current_user" ]; then
+            echo "Error: Cannot read /proc/$PID/smaps_rollup - process owned by '$owner', running as '$current_user'" >&2
+            echo "Hint: This tool can only measure processes owned by the same user" >&2
+        else
+            echo "Error: Cannot read /proc/$PID/smaps_rollup (permission denied)" >&2
+        fi
         exit 2
     fi
 }
@@ -148,18 +169,29 @@ extract_metrics() {
     
     [ "$VERBOSE" = true ] && echo "Reading $smaps..." >&2
     
-    # Extract raw values in kB
-    PSS_KB=$(grep '^Pss:' "$smaps" | awk '{print $2}' || echo "0")
-    RSS_KB=$(grep '^Rss:' "$smaps" | awk '{print $2}' || echo "0")
+    # Double-check file is still readable (race condition protection)
+    if [ ! -r "$smaps" ]; then
+        echo "Error: Process $PID disappeared or became unreadable during measurement" >&2
+        exit 2
+    fi
+    
+    # Extract raw values in kB with error handling
+    PSS_KB=$(grep '^Pss:' "$smaps" 2>/dev/null | awk '{print $2}' || echo "0")
+    RSS_KB=$(grep '^Rss:' "$smaps" 2>/dev/null | awk '{print $2}' || echo "0")
     
     # Calculate USS as sum of Private_Clean + Private_Dirty
-    USS_KB=$(grep '^Private_' "$smaps" | awk '{sum += $2} END {print sum+0}')
+    USS_KB=$(grep '^Private_' "$smaps" 2>/dev/null | awk '{sum += $2} END {print sum+0}')
+    
+    # Ensure we have numeric values
+    PSS_KB=$(echo "$PSS_KB" | grep -E '^[0-9]+$' || echo "0")
+    RSS_KB=$(echo "$RSS_KB" | grep -E '^[0-9]+$' || echo "0") 
+    USS_KB=$(echo "$USS_KB" | grep -E '^[0-9]+$' || echo "0")
     
     [ "$VERBOSE" = true ] && echo "Raw metrics: PSS=$PSS_KB kB, USS=$USS_KB kB, RSS=$RSS_KB kB" >&2
     
     # Validate we got reasonable values
     if [ "$PSS_KB" = "0" ] && [ "$RSS_KB" = "0" ] && [ "$USS_KB" = "0" ]; then
-        echo "Warning: All memory metrics are zero - process may have exited" >&2
+        echo "Warning: All memory metrics are zero - process may have exited during measurement" >&2
     fi
 }
 
