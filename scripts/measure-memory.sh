@@ -47,7 +47,7 @@ show_usage() {
     echo ""
     echo "METHODS:"
     echo "  rss       - RSS via GNU time (basic memory usage)"
-    echo "  pss       - PSS via smem2 (proportional set size)"
+    echo "  pss       - PSS via measure_memory (proportional set size)"
     echo "  uss       - USS via /proc (unique set size)"
     echo "  all       - All measurement methods"
     echo ""
@@ -331,7 +331,7 @@ measure_rss() {
 # Function to run PSS/USS measurement
 measure_pss_uss() {
     local output_var="$1"
-    [ "$VERBOSE" = true ] && echo "Running PSS/USS measurement via smem2 and /proc..."
+    [ "$VERBOSE" = true ] && echo "Running PSS/USS measurement via measure_memory and /proc..."
     
     # Get container path mapping
     get_container_mapping "$LANGUAGE" "$SCRIPT_FILE"
@@ -362,8 +362,8 @@ measure_pss_uss() {
             # Wait a moment for startup
             sleep 0.1
             
-            echo '=== smem2 measurement ==='
-            smem2 -P \$PID -c pss,uss,rss 2>/dev/null || echo 'Process finished too quickly for smem2'
+            echo '=== measure_memory measurement ==='
+            measure_memory -P \$PID -c pss,uss,rss 2>/dev/null || echo 'Process finished too quickly for measure_memory'
             
             echo '=== /proc/PID/smaps_rollup ==='
             if [ -r /proc/\$PID/smaps_rollup ]; then
@@ -432,7 +432,7 @@ case $MODE in
         fi
         
         if [[ "$METHOD" == "all" || "$METHOD" == "pss" || "$METHOD" == "uss" ]]; then
-            echo -e "${YELLOW}PSS/USS Measurement (smem2 + /proc):${NC}"
+            echo -e "${YELLOW}PSS/USS Measurement (measure_memory + /proc):${NC}"
             measure_pss_uss pss_uss_output
             read pss_kb uss_kb <<< $(extract_pss_uss "$pss_uss_output")
             echo "PSS (Proportional Set Size): $pss_kb KB"

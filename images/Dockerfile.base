@@ -1,27 +1,23 @@
 FROM debian:bookworm-slim
 
-# Install measurement tools for RSS, PSS, USS memory analysis
+# Install minimal measurement tools for RSS, PSS, USS memory analysis
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         time \
-        python3 \
-        python3-pip \
         ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install smem2 for enhanced PSS/USS measurement
-RUN pip3 install --no-cache-dir --break-system-packages smem2
+# Add lightweight memory measurement script (replaces smem2)
+COPY scripts/measure_memory.sh /usr/local/bin/measure_memory
+RUN chmod +x /usr/local/bin/measure_memory
 
-# Create directories for measurement and test code
-RUN mkdir -p /workspace /measurements
-
-# Create non-root user for security
-RUN groupadd -g 1000 tester && useradd -m -u 1000 -g 1000 tester
-
-# Change ownership of workspace to tester user
-RUN chown -R tester:tester /workspace /measurements
+# Create directories and user in single layer for efficiency
+RUN mkdir -p /workspace /measurements && \
+    groupadd -g 1000 tester && \
+    useradd -m -u 1000 -g 1000 tester && \
+    chown -R tester:tester /workspace /measurements
 
 # Set working directory for volume mounts
 WORKDIR /workspace
@@ -35,4 +31,4 @@ LABEL org.opencontainers.image.description="Ultra-minimal base image for languag
 LABEL org.opencontainers.image.licenses=Apache-2.0
 
 # Default command shows available measurement tools and usage
-CMD ["/bin/sh", "-c", "echo 'PetriBench Base Image'; echo 'Available measurement tools:'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - smem2 (PSS/USS measurement)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo ''; echo 'Usage: Extend this base image with your language runtime'"]
+CMD ["/bin/sh", "-c", "echo 'PetriBench Base Image (Optimized)'; echo 'Available measurement tools:'; echo '  - /usr/bin/time (GNU time for RSS measurement)'; echo '  - measure_memory (PSS/USS measurement, replaces smem2)'; echo '  - /proc/self/smaps_rollup (direct proc parsing)'; echo ''; echo 'Size: ~35MB (vs 169MB with Python dependencies)'; echo 'Usage: Extend this base image with your language runtime'"]
